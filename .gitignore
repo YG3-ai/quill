@@ -1,0 +1,18 @@
+# Server runtime artifacts (don't ship these to customers)
+plugins/bridges/server/.env
+plugins/bridges/server/bridges.log
+plugins/bridges/server/bridges.log.err
+plugins/bridges/server/.bridge.pid
+plugins/bridges/server/sessions/
+plugins/bridges/server/evals/
+plugins/bridges/server/bridge_toggles.json
+plugins/bridges/server/.venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/

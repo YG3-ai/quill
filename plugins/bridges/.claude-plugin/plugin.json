@@ -1,0 +1,8 @@
+{
+  "name": "bridges",
+  "description": "A thinking partner for Claude Code. Adds /consult, /perspective, and /assumptions slash commands that route to a local advisor server, plus optional safety hooks for risky shell commands and pre-push quality scans.",
+  "version": "0.1.0",
+  "author": {
+    "name": "TBD — your company name"
+  }
+}

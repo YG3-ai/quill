@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:9000/hooks/PreToolUse",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://127.0.0.1:9000/hooks/PreToolUse",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
