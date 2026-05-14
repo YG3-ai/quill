@@ -18,7 +18,7 @@ from ._cli_common import BaseCLIAdvisor
 class CodexCLIAdvisor(BaseCLIAdvisor):
     name = "codex_cli"
 
-    def __init__(self, *, binary: str = "codex", timeout: float = 120.0):
+    def __init__(self, *, binary: str = "codex", timeout: float = 300.0):
         super().__init__(binary=binary, args=["exec"], timeout=timeout)
 
     @property

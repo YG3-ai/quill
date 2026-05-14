@@ -36,14 +36,14 @@ def build_advisor() -> Advisor:
         from .codex_cli_advisor import CodexCLIAdvisor
         return CodexCLIAdvisor(
             binary=os.environ.get("CODEX_BIN", "codex"),
-            timeout=float(os.environ.get("CLI_TIMEOUT", "120")),
+            timeout=float(os.environ.get("CLI_TIMEOUT", "300")),
         )
 
     if backend == "claude_cli":
         from .claude_cli_advisor import ClaudeCLIAdvisor
         return ClaudeCLIAdvisor(
             binary=os.environ.get("CLAUDE_BIN", "claude"),
-            timeout=float(os.environ.get("CLI_TIMEOUT", "120")),
+            timeout=float(os.environ.get("CLI_TIMEOUT", "300")),
         )
 
     raise ValueError(

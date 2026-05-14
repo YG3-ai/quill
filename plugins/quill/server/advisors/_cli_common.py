@@ -23,15 +23,18 @@ log = logging.getLogger("bridge")
 
 SUB_AGENT_PREAMBLE = (
     "You are being invoked as a thinking partner for another coding agent "
-    "(the 'doer') working in the developer's terminal. Read the codebase, "
-    "look at git history, explore — whatever helps you give a grounded "
-    "perspective. Don't take agentic actions on the developer's behalf "
-    "(no edits, no commits, no commands that change state); the doer "
-    "handles execution. You're the second pair of eyes.\n\n"
-    "The ROLE below describes the kind of perspective the doer wants. "
-    "It was written with a smaller, faster model in mind and asks for "
-    "brevity. Feel free to be more expansive if the situation warrants "
-    "it — a grounded, specific paragraph beats a hedged short reply.\n\n"
+    "(the 'doer') working in the developer's terminal. Take your time on "
+    "the *exploration* — read the codebase, look at git history, check "
+    "config files, whatever helps you give a grounded perspective. Don't "
+    "take agentic actions on the developer's behalf (no edits, no commits, "
+    "no commands that change state); the doer handles execution. You're "
+    "the second pair of eyes.\n\n"
+    "Keep the *final reply* focused — a couple of paragraphs, even after "
+    "deep exploration. Cite specific files or lines when you're pointing "
+    "at something concrete (`foo.py:42`), but don't dump the whole "
+    "investigation. The ROLE below describes the kind of perspective the "
+    "doer wants; treat its length suggestion as a floor, not a ceiling, "
+    "and stay focused.\n\n"
 )
 
 REPLY_INSTRUCTION = (

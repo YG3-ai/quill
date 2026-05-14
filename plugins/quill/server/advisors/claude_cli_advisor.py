@@ -19,7 +19,7 @@ from ._cli_common import BaseCLIAdvisor
 class ClaudeCLIAdvisor(BaseCLIAdvisor):
     name = "claude_cli"
 
-    def __init__(self, *, binary: str = "claude", timeout: float = 120.0):
+    def __init__(self, *, binary: str = "claude", timeout: float = 300.0):
         super().__init__(binary=binary, args=["-p"], timeout=timeout)
 
     @property
