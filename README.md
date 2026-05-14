@@ -24,6 +24,53 @@ Three slash commands:
 Plus optional safety hooks (gatekeeper for risky shell commands) and
 pre-push quality scans (secrets, debug statements, TODOs, .env files).
 
+## Free, with a tip jar
+
+Quill is free. We built it because the team uses it daily and wanted
+others to have it too.
+
+If Quill earns its keep in your workflow, you can leave a tip:
+
+→ **[Support Quill ($5 suggested, name your price)](https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i)**
+
+100% of donations go to Yugen LLC and fund continued development.
+
+## Pairing Quill with an AI
+
+Quill is the *client*. The actual reframings come from an AI you bring.
+The plugin talks to any OpenAI-compatible chat completions endpoint.
+
+### Recommended: pair with Elysia
+
+Quill was designed alongside **Elysia**, our model. Elysia's voice is
+what shapes the consult/perspective/assumptions responses you'll see.
+
+To use Elysia:
+
+1. Sign up at [app.yg3.ai](https://app.yg3.ai) (paid YG3 subscription required)
+2. Generate an API key from your account
+3. Drop it into `plugins/quill/server/.env`:
+
+   ```
+   AI_BASE_URL=https://elysia-api.ngrok.io/api/public/v1
+   AI_API_KEY=<your-key>
+   AI_MODEL=elysia
+   AI_MODEL_GATEKEEPER=merlin
+   ```
+
+### Bring your own API
+
+Any OpenAI-compatible endpoint works. Examples:
+
+- **OpenAI** — `AI_BASE_URL=https://api.openai.com/v1`, `AI_MODEL=gpt-4o-mini`
+- **OpenRouter** — `AI_BASE_URL=https://openrouter.ai/api/v1`, any model they host
+- **Ollama (local)** — `AI_BASE_URL=http://localhost:11434/v1`, `AI_MODEL=llama3.1`
+- **Together / Groq / Anyscale** — point at their OpenAI-compatible URL
+
+The product still works; the voice will feel different. Quill's prompts
+were tuned with Elysia in mind, so other models may be more terse, more
+verbose, or more advice-y than the intended feel.
+
 ## Repo shape
 
 ```

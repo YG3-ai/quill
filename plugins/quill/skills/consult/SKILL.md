@@ -33,7 +33,13 @@ payload = json.dumps({'message': msg}).encode()
 req = urllib.request.Request('http://127.0.0.1:9000/consult', data=payload, headers={'Content-Type': 'application/json'})
 try:
     with urllib.request.urlopen(req, timeout=60) as r:
-        print(json.loads(r.read())['reply'])
+        data = json.loads(r.read())
+    if data.get('welcome'):
+        print('=== WELCOME ===')
+        print(data['welcome'])
+        print('=== END WELCOME ===')
+        print()
+    print(data['reply'])
 except Exception as e:
     print(f'BRIDGE UNAVAILABLE: {e}')
 " "<YOUR FRAMING>"
@@ -43,6 +49,12 @@ If you see `BRIDGE UNAVAILABLE`, the local advisor server isn't running.
 Tell the developer to check the plugin's status (it should auto-start when
 the plugin is enabled — see the plugin README for the recovery command)
 and stop here.
+
+**First-install note:** if the output contains `=== WELCOME ===` /
+`=== END WELCOME ===` markers, this is the developer's very first Quill
+invocation. Show the welcome text (between the markers) verbatim as a
+brief preface in Step 3, before the three-paragraph dialogue. After this
+session it will never appear again — don't paraphrase or skip it.
 
 ## Step 3 — Show the developer the dialogue
 

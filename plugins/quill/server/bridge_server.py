@@ -346,6 +346,46 @@ def _save_toggles(state: dict[str, bool]) -> None:
 
 toggles: dict[str, bool] = _load_toggles()
 
+# ── First-install welcome ─────────────────────────────────────────────────────
+
+WELCOME_SENTINEL = os.path.expanduser("~/.quill/.welcomed")
+DONATION_URL = "https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i"
+WELCOME_MESSAGE = (
+    "Thanks for installing Quill — a thinking partner for Claude Code, "
+    "built by Yugen (yg3.ai). Quill is free. If it earns its keep in your "
+    f"workflow, you can leave a tip at {DONATION_URL} (any amount). "
+    "No pressure. Happy you're here."
+)
+
+_welcome_consumed = False
+
+
+def _consume_welcome_if_first_run() -> str | None:
+    """Return the welcome string the first time it's called after install.
+
+    Persists across restarts via a sentinel file at ~/.quill/.welcomed.
+    Returns None on every subsequent call. Filesystem failures are
+    swallowed and treated as 'already welcomed' to avoid spamming the
+    developer if the home dir is unwritable.
+    """
+    global _welcome_consumed
+    if _welcome_consumed:
+        return None
+    if os.path.exists(WELCOME_SENTINEL):
+        _welcome_consumed = True
+        return None
+    try:
+        os.makedirs(os.path.dirname(WELCOME_SENTINEL), exist_ok=True)
+        with open(WELCOME_SENTINEL, "w") as f:
+            f.write("welcomed\n")
+    except OSError as e:
+        log.warning(f"Could not write welcome sentinel ({WELCOME_SENTINEL}): {e}; suppressing welcome")
+        _welcome_consumed = True
+        return None
+    _welcome_consumed = True
+    return WELCOME_MESSAGE
+
+
 # ── Session Memory ────────────────────────────────────────────────────────────
 
 class SessionStore:
@@ -1773,7 +1813,11 @@ async def _single_call_endpoint(request, *, toggle_key, log_label, advisor_fn, d
     reply = await advisor_fn(claude_message)
     elapsed = time.time() - start
     log.info(f"{log_label}: Elysia replied ({len(reply)} chars, {elapsed:.1f}s)")
-    return {"reply": reply}
+    response: dict = {"reply": reply}
+    welcome = _consume_welcome_if_first_run()
+    if welcome:
+        response["welcome"] = welcome
+    return response
 
 
 @app.post("/sessions/{session_id}/inject")
