@@ -19,7 +19,21 @@ class CodexCLIAdvisor(BaseCLIAdvisor):
     name = "codex_cli"
 
     def __init__(self, *, binary: str = "codex", timeout: float = 300.0):
-        super().__init__(binary=binary, args=["exec"], timeout=timeout)
+        super().__init__(
+            binary=binary,
+            # --skip-git-repo-check: Codex refuses to run in untrusted dirs by
+            #   default; the advisor needs to work regardless of where Quill
+            #   was launched from.
+            # --sandbox read-only: defense in depth — the advisor should never
+            #   modify state. Belt-and-suspenders with the preamble's "no
+            #   agentic actions" instruction.
+            args=["exec", "--skip-git-repo-check", "--sandbox", "read-only"],
+            timeout=timeout,
+            # Codex prints metadata + transcript to stdout; --output-last-message
+            # writes just the agent's final reply to a file. Cleaner than
+            # parsing the stdout block.
+            output_file_arg="--output-last-message",
+        )
 
     @property
     def env_binary_var(self) -> str:

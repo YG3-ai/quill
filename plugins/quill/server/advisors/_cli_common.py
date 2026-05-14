@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import tempfile
 
 from .base import Advisor
 
@@ -76,14 +78,30 @@ def format_prompt(messages: list[dict]) -> str:
 
 
 class BaseCLIAdvisor(Advisor):
-    """Common subprocess plumbing for CLI-backed advisor backends."""
+    """Common subprocess plumbing for CLI-backed advisor backends.
+
+    By default, the agent's reply is whatever the subprocess prints to
+    stdout. If `output_file_arg` is set, Quill creates a tempfile,
+    inserts `<output_file_arg> <tempfile>` into the command, and reads
+    the reply from the tempfile instead. This is for CLIs that print
+    metadata + transcript to stdout but offer a flag to write just the
+    final assistant message to a file (codex's `--output-last-message`).
+    """
 
     name: str = "cli"
 
-    def __init__(self, *, binary: str, args: list[str], timeout: float):
+    def __init__(
+        self,
+        *,
+        binary: str,
+        args: list[str],
+        timeout: float,
+        output_file_arg: str | None = None,
+    ):
         self.binary = binary
         self.args = list(args)
         self.default_timeout = timeout
+        self.output_file_arg = output_file_arg
 
     async def chat(
         self,
@@ -95,42 +113,64 @@ class BaseCLIAdvisor(Advisor):
         timeout: float | None = None,
     ) -> str:
         prompt = format_prompt(messages)
-        cmd = [self.binary, *self.args, prompt]
         effective_timeout = timeout if timeout is not None else self.default_timeout
 
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-        except FileNotFoundError:
-            log.error(
-                f"{self.name}: binary {self.binary!r} not found. "
-                f"Set {self.env_binary_var} in .env to override, or install the CLI."
-            )
-            return ""
-        except Exception as e:
-            log.error(f"{self.name}: failed to spawn subprocess ({type(e).__name__}: {e})")
-            return ""
+        output_file_path: str | None = None
+        if self.output_file_arg:
+            fd, output_file_path = tempfile.mkstemp(prefix="quill-", suffix=".txt")
+            os.close(fd)
+            cmd = [self.binary, *self.args, self.output_file_arg, output_file_path, prompt]
+        else:
+            cmd = [self.binary, *self.args, prompt]
 
         try:
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(),
-                timeout=effective_timeout,
-            )
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            log.error(f"{self.name}: timed out after {effective_timeout:.1f}s")
-            return ""
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+            except FileNotFoundError:
+                log.error(
+                    f"{self.name}: binary {self.binary!r} not found. "
+                    f"Set {self.env_binary_var} in .env to override, or install the CLI."
+                )
+                return ""
+            except Exception as e:
+                log.error(f"{self.name}: failed to spawn subprocess ({type(e).__name__}: {e})")
+                return ""
 
-        if proc.returncode != 0:
-            err = stderr.decode("utf-8", errors="replace").strip()[:500]
-            log.error(f"{self.name}: exited {proc.returncode}: {err}")
-            return ""
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(),
+                    timeout=effective_timeout,
+                )
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
+                log.error(f"{self.name}: timed out after {effective_timeout:.1f}s")
+                return ""
 
-        return stdout.decode("utf-8", errors="replace").strip()
+            if proc.returncode != 0:
+                err = stderr.decode("utf-8", errors="replace").strip()[:500]
+                log.error(f"{self.name}: exited {proc.returncode}: {err}")
+                return ""
+
+            if output_file_path:
+                try:
+                    with open(output_file_path, "r", encoding="utf-8", errors="replace") as f:
+                        return f.read().strip()
+                except OSError as e:
+                    log.error(f"{self.name}: could not read output file {output_file_path}: {e}")
+                    return ""
+
+            return stdout.decode("utf-8", errors="replace").strip()
+        finally:
+            if output_file_path:
+                try:
+                    os.unlink(output_file_path)
+                except OSError:
+                    pass
 
     @property
     def env_binary_var(self) -> str:
