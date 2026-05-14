@@ -1,8 +1,8 @@
 ---
-description: Layer in another perspective from the advisor. For curious, exploring moments — when you want a second vantage point, not because you're stuck. Invoke as /bridges:perspective <note>.
+description: Layer in another perspective from Quill. For curious, exploring moments — when you want a second vantage point, not because you're stuck. Invoke as /quill:perspective <note>.
 ---
 
-The developer just typed `/bridges:perspective` — they're not stuck or
+The developer just typed `/quill:perspective` — they're not stuck or
 frustrated, they're exploring. They want to layer in another vantage point
 alongside yours. Their note: "$ARGUMENTS"
 
@@ -20,7 +20,7 @@ Look back at the last 6-10 exchanges in this session. In 2-3 sentences, describe
 **Length limit:** keep your framing under **600 characters total**. The
 bridge caps inputs at 1000 chars and will truncate longer messages.
 
-## Step 2 — Ask the advisor for the additional perspective
+## Step 2 — Ask Quill for the additional perspective
 
 Use this command, substituting your framing from Step 1 for `<YOUR FRAMING>`:
 
@@ -49,7 +49,7 @@ Compose a final reply with exactly three short paragraphs, in this order:
 
 **Claude:** Your framing from Step 1.
 
-**Advisor:** The perspective verbatim from Step 2.
+**Quill:** The perspective verbatim from Step 2.
 
 **Together:** The new angle the two views combine into, plus *one* concrete
 thing this opens up that wasn't visible before. End on that — don't add

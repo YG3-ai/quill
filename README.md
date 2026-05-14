@@ -1,32 +1,43 @@
-# Bridges — private Claude Code plugin marketplace
+# Quill — private Claude Code plugin marketplace
 
-A private plugin marketplace for distributing **Bridges** to your customers.
-This repo is meant to be cloned into your customer's Claude Code via
-`/plugin marketplace add`, after which they install the `bridges` plugin
-itself with `/plugin install bridges@<your-marketplace-name>`.
+A private plugin marketplace under the **YG3** umbrella for distributing
+**Quill** to your customers. The marketplace lives at this repo; the
+plugin (`quill`) lives inside it. Your customer adds the marketplace
+once, then installs the plugin:
 
-## What this is
+```bash
+/plugin marketplace add yg3/quill
+/plugin install quill@yg3
+```
 
-Bridges is a thinking partner for Claude Code. Three slash commands
-(`/bridges:consult`, `/bridges:perspective`, `/bridges:assumptions`),
-plus optional safety hooks for risky shell commands and pre-push
-quality scans. See the [open-source predecessor](../BRIDGES) for the
-full architecture.
+## What Quill is
+
+Quill is a thinking partner for Claude Code. The instrument you reach
+for when you want to pause, get a second perspective, or check the
+assumptions baked into what you're about to ship.
+
+Three slash commands:
+- **`/quill:consult <note>`** — for stuck/frustrated moments. Quill reframes what's actually going on.
+- **`/quill:perspective <note>`** — for exploring/curious moments. Quill layers in a vantage Claude hasn't taken.
+- **`/quill:assumptions [note]`** — for "what choices is Claude making that I don't understand?" Quill translates technical assumptions into plain-language yes/no questions.
+
+Plus optional safety hooks (gatekeeper for risky shell commands) and
+pre-push quality scans (secrets, debug statements, TODOs, .env files).
 
 ## Repo shape
 
 ```
 BRIDGES-Plugin/
 ├── .claude-plugin/
-│   └── marketplace.json                  ← the marketplace catalog
+│   └── marketplace.json                  ← the YG3 marketplace catalog
 ├── plugins/
-│   └── bridges/                          ← the actual plugin
+│   └── quill/                            ← the plugin
 │       ├── .claude-plugin/
 │       │   └── plugin.json               ← plugin manifest
 │       ├── skills/
-│       │   ├── consult/SKILL.md          ← /bridges:consult
-│       │   ├── perspective/SKILL.md      ← /bridges:perspective
-│       │   └── assumptions/SKILL.md      ← /bridges:assumptions
+│       │   ├── consult/SKILL.md          ← /quill:consult
+│       │   ├── perspective/SKILL.md      ← /quill:perspective
+│       │   └── assumptions/SKILL.md      ← /quill:assumptions
 │       ├── hooks/
 │       │   └── hooks.json                ← PreToolUse routing
 │       ├── monitors/
@@ -52,28 +63,22 @@ real questions need answering before customers should touch this. See
 ```bash
 # Inside Claude Code:
 /plugin marketplace add /Users/samuelknox/Documents/BRIDGES-Plugin
-/plugin install bridges@TBD-marketplace-name
+/plugin install quill@yg3
 ```
 
-(Replace the marketplace name once you've decided on the real one in
-`.claude-plugin/marketplace.json`.)
-
 The Python server should auto-start via the monitor entry. Check
-`plugins/bridges/server/bridges.log` for output.
+`plugins/quill/server/quill.log` for output.
 
 ## What's NOT done yet
 
 - License key validation in the FastAPI server
 - Customer onboarding flow (where does the API key + license token live?)
-- A real marketplace name (currently `TBD-marketplace-name`)
-- Branding (currently still references "Bridges" / "the advisor"; no
-  product name decided)
 - Polish on `monitors.json` — needs verification that auto-start +
   log redirection actually works in practice
-- Update mechanism (Anthropic's `/plugin update` works for git-hosted
-  marketplaces; private hosting story TBD)
-- Renaming/scoping the open-source predecessor's brand (Elysia/merlin
-  references in the server code) for the commercial product
+- Update mechanism for non-technical customers (git pull vs CDN tarball)
+- The server code (`bridge_server.py`, `checks.py`) still has internal
+  references to "Elysia" and "merlin" model names — needs a brand pass
+  for customer-facing strings
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list and which
 ones block shipping.

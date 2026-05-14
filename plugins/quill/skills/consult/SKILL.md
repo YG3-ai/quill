@@ -1,11 +1,11 @@
 ---
-description: Pause and reframe the current situation with the advisor. For frustrated, stuck, or confused moments. Invoke as /bridges:consult <note>.
+description: Pause and reframe the current situation with Quill. For frustrated, stuck, or confused moments. Invoke as /quill:consult <note>.
 ---
 
-The developer just typed `/bridges:consult` — likely because something feels
+The developer just typed `/quill:consult` — likely because something feels
 stuck, inconsistent, or off. Their note: "$ARGUMENTS"
 
-Don't try to solve the problem yet. Run this dialogue with the advisor first.
+Don't try to solve the problem yet. Run this dialogue with Quill first.
 
 ## Step 1 — Frame what you see
 
@@ -21,7 +21,7 @@ not theirs.
 caps inputs at 1000 chars and will truncate longer messages. Tight framings
 get sharper reframings — say what's load-bearing, leave the rest.
 
-## Step 2 — Send your framing to the advisor via the bridge
+## Step 2 — Send your framing to Quill via the bridge
 
 Use this command, substituting your framing from Step 1 for `<YOUR FRAMING>`:
 
@@ -50,7 +50,7 @@ Compose a final reply with exactly three short paragraphs, in this order:
 
 **Claude:** Your framing from Step 1.
 
-**Advisor:** The reframing verbatim from Step 2.
+**Quill:** The reframing verbatim from Step 2.
 
 **Together:** What you both see now that you've talked it through, plus
 *one* concrete thing the developer could try right now. End on that

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "quill-server",
+    "description": "Quill advisor server (FastAPI) — long-running. Stdout is suppressed because the hook URLs in hooks.json need this server live, but its log lines aren't useful as in-conversation notifications.",
+    "command": "bash -c 'cd \"${CLAUDE_PLUGIN_ROOT}/server\" && python3 bridge_server.py >> \"${CLAUDE_PLUGIN_ROOT}/server/quill.log\" 2>&1'"
+  }
+]

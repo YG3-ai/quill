@@ -1,12 +1,12 @@
 # Server runtime artifacts (don't ship these to customers)
-plugins/bridges/server/.env
-plugins/bridges/server/bridges.log
-plugins/bridges/server/bridges.log.err
-plugins/bridges/server/.bridge.pid
-plugins/bridges/server/sessions/
-plugins/bridges/server/evals/
-plugins/bridges/server/bridge_toggles.json
-plugins/bridges/server/.venv/
+plugins/quill/server/.env
+plugins/quill/server/quill.log
+plugins/quill/server/quill.log.err
+plugins/quill/server/.bridge.pid
+plugins/quill/server/sessions/
+plugins/quill/server/evals/
+plugins/quill/server/bridge_toggles.json
+plugins/quill/server/.venv/
 
 # Python
 __pycache__/

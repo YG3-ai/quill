@@ -1,0 +1,9 @@
+{
+  "name": "quill",
+  "description": "A thinking partner for Claude Code. The instrument you reach for when you want to pause, get a second perspective, or check the assumptions baked into what you're about to ship. Adds /quill:consult, /quill:perspective, and /quill:assumptions slash commands.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Yugen LLC",
+    "url": "https://yg3.ai"
+  }
+}

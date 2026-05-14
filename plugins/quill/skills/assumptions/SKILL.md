@@ -1,14 +1,14 @@
 ---
-description: Surface and translate the technical assumptions Claude is silently making, so a non-technical developer can correct them in plain language. Invoke as /bridges:assumptions [note].
+description: Surface and translate the technical assumptions Claude is silently making, so a non-technical developer can correct them in plain language. Invoke as /quill:assumptions [note].
 ---
 
-The developer just typed `/bridges:assumptions` — they want to check the
+The developer just typed `/quill:assumptions` — they want to check the
 technical choices you've been making silently. Their note: "$ARGUMENTS"
 
 This isn't about defending what you've done. It's about making invisible
 choices visible so the developer can actually have an opinion. They are
 smart but don't necessarily know the vocabulary; your job is to surface
-your assumptions accurately, then let the advisor translate them into
+your assumptions accurately, then let Quill translate them into
 questions they can answer.
 
 ## Step 1 — Enumerate your assumptions
@@ -37,7 +37,7 @@ something about hosting."
 bridge caps inputs at 1000 chars and will truncate longer messages.
 Pick the load-bearing assumptions; skip the obvious ones.
 
-## Step 2 — Send to the advisor for translation
+## Step 2 — Send to Quill for translation
 
 Use this command, substituting your enumeration from Step 1 for `<YOUR ASSUMPTIONS>`:
 
@@ -62,7 +62,7 @@ command) and stop here.
 
 ## Step 3 — Show the developer the translated checklist
 
-Present the advisor's translated questions verbatim — these are the
+Present Quill's translated questions verbatim — these are the
 plain-language versions of your assumptions. Then add one closing line:
 
 > "Reply with answers (or 'idk' for any of them) and I'll adjust accordingly."

@@ -7,19 +7,16 @@ Grouped by what they block.
 
 ## Blocks shipping
 
-### 1. The product name
+### 1. The product name — RESOLVED (2026-05-09)
 
-`marketplace.json` and `plugin.json` both say "TBD". Decisions needed:
-- **Marketplace name** (kebab-case identifier, public-facing, shows up
-  in `/plugin install bridges@<name>`). Reserved names like
-  `claude-code-marketplace` are blocked. Must not impersonate
-  Anthropic-official marketplaces.
-- **Plugin name** (currently `bridges`; namespacing means it shows
-  as `/bridges:consult` etc.). Could keep `bridges` for the slash
-  prefix even if the brand name is different.
-- **Display brand** for marketing — separate from the technical names.
-  Currently we sidestep with "the advisor" in the SKILL.md content, but
-  you may want a specific brand voice.
+- **Marketplace name:** `yg3`
+- **Plugin name:** `quill` (slash commands: `/quill:consult`,
+  `/quill:perspective`, `/quill:assumptions`)
+- **Display brand:** Quill — "a thinking partner for Claude Code"
+- **Owner:** Yugen LLC
+
+Open sub-question: the owner email in `marketplace.json` is still
+`TBD@yg3.ai` — pick the address customers should see.
 
 ### 2. License key validation
 
@@ -31,7 +28,7 @@ that hits `your-company.com/api/license/validate?key=<key>` on first
 hook fire. Cache the result. Fail-closed if invalid.
 
 **Where the key is stored:** options:
-- `.env` file (`BRIDGES_LICENSE_KEY=...`) — same place as API key
+- `.env` file (`QUILL_LICENSE_KEY=...`) — same place as API key
 - Macos Keychain / Windows Credential Manager — more secure, more setup
 - Sent in via env var at install time
 
@@ -78,7 +75,7 @@ cd ~/.claude/plugins/cache/<plugin>/server && pip install -r requirements.txt
 
 Options:
 - Bundle a `bin/setup` script that runs on first hook fire (chicken/egg)
-- Document the manual step in the README and a `bin/bridges-setup` command
+- Document the manual step in the README and a `bin/quill-setup` command
 - Ship a self-contained binary (PyInstaller) instead of raw Python — no
   Python install required, much bigger download
 - Use `uv` or another Python launcher that handles deps automatically
@@ -136,8 +133,8 @@ operations.
 ### 9. A non-monitor startup story
 
 If monitors are flaky or noisy, alternatives:
-- A `bin/bridges-start` script + readme instruction "run this once"
-- An OS-level launchd/systemd service installed by `bin/bridges-install`
+- A `bin/quill-start` script + readme instruction "run this once"
+- An OS-level launchd/systemd service installed by `bin/quill-install`
 - Background it via `nohup` from a one-shot setup script
 
 ### 10. Telemetry / analytics
