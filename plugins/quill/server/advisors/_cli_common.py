@@ -22,15 +22,23 @@ log = logging.getLogger("bridge")
 
 
 SUB_AGENT_PREAMBLE = (
-    "You are being invoked as a sub-agent to give a single thinking-partner "
-    "response. Do not write code, edit files, or run commands unless strictly "
-    "necessary to answer. Read the ROLE below, then reply directly to the "
-    "QUESTION with your response.\n\n"
+    "You are being invoked as a thinking partner for another coding agent "
+    "(the 'doer') working in the developer's terminal. Read the codebase, "
+    "look at git history, explore — whatever helps you give a grounded "
+    "perspective. Don't take agentic actions on the developer's behalf "
+    "(no edits, no commits, no commands that change state); the doer "
+    "handles execution. You're the second pair of eyes.\n\n"
+    "The ROLE below describes the kind of perspective the doer wants. "
+    "It was written with a smaller, faster model in mind and asks for "
+    "brevity. Feel free to be more expansive if the situation warrants "
+    "it — a grounded, specific paragraph beats a hedged short reply.\n\n"
 )
 
 REPLY_INSTRUCTION = (
-    "\n\nReply with only your thinking-partner response. No preamble, no "
-    "follow-up questions, no offers to take action. Just your answer."
+    "\n\nReply with your thinking-partner response. Speak directly to the "
+    "doer so they can synthesize your view with their own and show the "
+    "developer the dialogue. A follow-up observation or question is fine "
+    "if it'd actually help."
 )
 
 
