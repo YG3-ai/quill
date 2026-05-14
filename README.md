@@ -1,28 +1,92 @@
-# Quill — private Claude Code plugin marketplace
+# Quill — a thinking partner between two coding agents
 
-A private plugin marketplace under the **YG3** umbrella for distributing
-**Quill** to your customers. The marketplace lives at this repo; the
-plugin (`quill`) lives inside it. Your customer adds the marketplace
-once, then installs the plugin:
+Quill mediates dialogue between the AI doing the work and a second AI
+giving perspective. The headline: **if you have a Claude Pro and a Codex
+Pro subscription, you have a free dual-AI coding setup.** No API key
+required, no per-token cost — Quill shells out to whichever CLIs you have
+installed and relays their conversation.
+
+Three thinking-partner skills available in any agentic CLI Quill is
+installed in:
+
+- **`consult`** — for stuck/frustrated moments. Quill's advisor reframes
+  what's actually going on.
+- **`perspective`** — for exploring/curious moments. Layers in a vantage
+  the doer hasn't taken.
+- **`assumptions`** — for "what choices is the AI making that I don't
+  understand?" Translates technical assumptions into plain-language
+  yes/no questions.
+
+In Claude Code specifically, you also get safety hooks (gatekeeper for
+risky shell commands) and pre-push quality scans (secrets, debug
+statements, TODOs, .env files).
+
+## The four ways to run Quill
+
+Pick the doer (the agent in your terminal) × the advisor (who Quill
+calls when you ask for perspective):
+
+| Doer (your terminal) | Advisor (Quill calls) | Cost | Setup |
+|---|---|---|---|
+| **Claude Code** | **Codex CLI** | Free (Codex Pro) | `ADVISOR_BACKEND=codex_cli` |
+| **Codex CLI** | **Claude CLI** | Free (Claude Pro) | `ADVISOR_BACKEND=claude_cli` |
+| Claude Code | API (Elysia, OpenAI, OpenRouter, Ollama, etc.) | Per-token | `ADVISOR_BACKEND=api` |
+| Codex CLI / Cursor / Cline / Continue | API or any CLI | Varies | Same |
+
+The two highlighted rows are the headline: **two coding agents in
+deliberate dialogue, billed against subscriptions you already have.**
+
+## Install
+
+### If you use Claude Code
+
+Inside Claude Code:
 
 ```bash
 /plugin marketplace add yg3/quill
 /plugin install quill@yg3
 ```
 
-## What Quill is
+The plugin's monitor auto-starts the FastAPI server. The three skills
+become `/quill:consult`, `/quill:perspective`, `/quill:assumptions`.
 
-Quill is a thinking partner for Claude Code. The instrument you reach
-for when you want to pause, get a second perspective, or check the
-assumptions baked into what you're about to ship.
+### If you use Codex CLI / Cursor / Cline / Continue / etc.
 
-Three slash commands:
-- **`/quill:consult <note>`** — for stuck/frustrated moments. Quill reframes what's actually going on.
-- **`/quill:perspective <note>`** — for exploring/curious moments. Quill layers in a vantage Claude hasn't taken.
-- **`/quill:assumptions [note]`** — for "what choices is Claude making that I don't understand?" Quill translates technical assumptions into plain-language yes/no questions.
+Quill ships an MCP server that any MCP-aware agent can talk to. After
+cloning this repo and `pip install -r plugins/quill/server/requirements.txt`,
+add to your agent's MCP config:
 
-Plus optional safety hooks (gatekeeper for risky shell commands) and
-pre-push quality scans (secrets, debug statements, TODOs, .env files).
+```json
+{
+  "mcpServers": {
+    "quill": {
+      "command": "python3",
+      "args": ["/path/to/BRIDGES-Plugin/plugins/quill/server/mcp_server.py"]
+    }
+  }
+}
+```
+
+Tools become `quill_consult`, `quill_perspective`, `quill_assumptions`.
+
+## Configuring the advisor backend
+
+Copy `plugins/quill/server/.env.example` → `.env`. Set:
+
+```
+ADVISOR_BACKEND=codex_cli   # or claude_cli, or api
+```
+
+For `codex_cli`: the `codex` binary must be on `$PATH`. Logged in via
+your ChatGPT Plus/Pro account.
+
+For `claude_cli`: the `claude` binary must be on `$PATH`. Logged in via
+your Claude Pro/Max account.
+
+For `api`: also set `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`. Recommended
+default: pair with **Elysia** (sign up at [app.yg3.ai](https://app.yg3.ai),
+paid YG3 subscription). Or BYO any OpenAI-compatible endpoint —
+OpenRouter, Ollama, Together, OpenAI direct, etc.
 
 ## Free, with a tip jar
 
@@ -35,77 +99,42 @@ If Quill earns its keep in your workflow, you can leave a tip:
 
 100% of donations go to Yugen LLC and fund continued development.
 
-## Pairing Quill with an AI
-
-Quill is the *client*. The actual reframings come from an AI you bring.
-The plugin talks to any OpenAI-compatible chat completions endpoint.
-
-### Recommended: pair with Elysia
-
-Quill was designed alongside **Elysia**, our model. Elysia's voice is
-what shapes the consult/perspective/assumptions responses you'll see.
-
-To use Elysia:
-
-1. Sign up at [app.yg3.ai](https://app.yg3.ai) (paid YG3 subscription required)
-2. Generate an API key from your account
-3. Drop it into `plugins/quill/server/.env`:
-
-   ```
-   AI_BASE_URL=https://elysia-api.ngrok.io/api/public/v1
-   AI_API_KEY=<your-key>
-   AI_MODEL=elysia
-   AI_MODEL_GATEKEEPER=merlin
-   ```
-
-### Bring your own API
-
-Any OpenAI-compatible endpoint works. Examples:
-
-- **OpenAI** — `AI_BASE_URL=https://api.openai.com/v1`, `AI_MODEL=gpt-4o-mini`
-- **OpenRouter** — `AI_BASE_URL=https://openrouter.ai/api/v1`, any model they host
-- **Ollama (local)** — `AI_BASE_URL=http://localhost:11434/v1`, `AI_MODEL=llama3.1`
-- **Together / Groq / Anyscale** — point at their OpenAI-compatible URL
-
-The product still works; the voice will feel different. Quill's prompts
-were tuned with Elysia in mind, so other models may be more terse, more
-verbose, or more advice-y than the intended feel.
-
 ## Repo shape
 
 ```
 BRIDGES-Plugin/
 ├── .claude-plugin/
-│   └── marketplace.json                  ← the YG3 marketplace catalog
+│   └── marketplace.json                  ← yg3 marketplace catalog
 ├── plugins/
-│   └── quill/                            ← the plugin
-│       ├── .claude-plugin/
-│       │   └── plugin.json               ← plugin manifest
-│       ├── skills/
-│       │   ├── consult/SKILL.md          ← /quill:consult
-│       │   ├── perspective/SKILL.md      ← /quill:perspective
-│       │   └── assumptions/SKILL.md      ← /quill:assumptions
-│       ├── hooks/
-│       │   └── hooks.json                ← PreToolUse routing
-│       ├── monitors/
-│       │   └── monitors.json             ← auto-starts the FastAPI server
-│       └── server/                       ← the FastAPI advisor server
-│           ├── bridge_server.py
-│           ├── checks.py
-│           ├── requirements.txt
+│   └── quill/                            ← Claude Code plugin wrapper
+│       ├── .claude-plugin/plugin.json
+│       ├── skills/                       ← /quill:consult etc.
+│       ├── hooks/hooks.json              ← gatekeeper, push checks
+│       ├── monitors/monitors.json        ← auto-starts the FastAPI server
+│       └── server/                       ← shared core (used by both
+│           │                               the plugin AND the MCP server)
+│           ├── bridge_server.py          ← FastAPI for Claude Code skills
+│           ├── mcp_server.py             ← MCP entry for non-Claude-Code
+│           ├── advisors/                 ← advisor backends
+│           │   ├── api_advisor.py        ← OpenAI-compatible API
+│           │   ├── codex_cli_advisor.py  ← shells out to `codex exec`
+│           │   └── claude_cli_advisor.py ← shells out to `claude -p`
+│           ├── prompts.py                ← shared system prompts
+│           ├── checks.py                 ← deterministic push scans
 │           └── .env.example
-├── LICENSE                               ← proprietary (placeholder)
-├── OPEN_QUESTIONS.md                     ← things to decide before shipping
-└── README.md                             ← this file
+├── LICENSE                               ← proprietary
+├── OPEN_QUESTIONS.md                     ← what's not yet shipped
+└── README.md
 ```
 
 ## Status
 
-**v0.1 scaffold — NOT YET SHIPPABLE.** The structure is right; several
-real questions need answering before customers should touch this. See
-[OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the list.
+**v0.2 scaffold.** The architecture is in place — advisor abstraction,
+both API and CLI backends, both FastAPI and MCP entry points. Several
+real things still need verification before this is rock-solid for
+non-technical users. See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
-## Trying it locally (dev)
+## Trying it locally
 
 ```bash
 # Inside Claude Code:
@@ -113,28 +142,25 @@ real questions need answering before customers should touch this. See
 /plugin install quill@yg3
 ```
 
-The Python server should auto-start via the monitor entry. Check
-`plugins/quill/server/quill.log` for output.
+Check `plugins/quill/server/quill.log` for the server startup line. To
+test the welcome flow again after a fresh install, delete
+`~/.quill/.welcomed` first.
 
 ## What's NOT done yet
 
-- License key validation in the FastAPI server
-- Customer onboarding flow (where does the API key + license token live?)
-- Polish on `monitors.json` — needs verification that auto-start +
-  log redirection actually works in practice
-- Update mechanism for non-technical customers (git pull vs CDN tarball)
-- The server code (`bridge_server.py`, `checks.py`) still has internal
-  references to "Elysia" and "merlin" model names — needs a brand pass
-  for customer-facing strings
+- Verified monitor auto-start across Claude Code restarts
+- Python dependency install story for non-technical users
+- Codex CLI / Claude CLI invocation flag verification on real machines
+  (defaults are reasonable but the user may need to override the binary
+  path or `args` if their CLI version differs)
+- Update mechanism (git pull vs tarball CDN)
 
-See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list and which
-ones block shipping.
+See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list.
 
 ## Relationship to the open-source BRIDGES repo
 
-This plugin is built from the existing local Bridges project at
-`../BRIDGES`. The `server/` directory is currently a **copy** of that
-project's `bridge_server.py` and `checks.py`. Any changes you make
-upstream need to be re-copied here, or we set up a sync mechanism
-(symlink, build script, git submodule). See OPEN_QUESTIONS for the
-sync question.
+The `server/` core started life as a copy of the open-source BRIDGES
+project at `../BRIDGES`. The two have diverged: this codebase has the
+advisor abstraction, the MCP server, the welcome message, and the donation
+plumbing; BRIDGES upstream remains a Claude-Code-only FastAPI bridge.
+Sync strategy still TBD — see OPEN_QUESTIONS.

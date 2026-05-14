@@ -17,13 +17,14 @@ import logging
 from contextlib import asynccontextmanager
 
 import bleach
-import httpx
 import markdown as md
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from dotenv import load_dotenv
 
 from checks import run_all_checks, format_findings, summarize_findings
+from advisors import Advisor, build_advisor
+from prompts import consult_prompt, perspective_prompt, assumptions_prompt
 
 load_dotenv()
 
@@ -32,17 +33,6 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                     stream=sys.stdout)
 log = logging.getLogger("bridge")
-
-
-def _require_env(name: str, hint: str = "") -> str:
-    val = os.environ.get(name, "").strip()
-    if not val:
-        log.error(
-            f"Missing required env var: {name}. "
-            f"Copy .env.example to .env and fill it in.{(' ' + hint) if hint else ''}"
-        )
-        sys.exit(1)
-    return val
 
 
 def _int_env(name: str, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
@@ -60,8 +50,12 @@ def _int_env(name: str, default: int, *, minimum: int = 1, maximum: int | None =
     return val
 
 
-AI_BASE_URL = _require_env("AI_BASE_URL", "e.g. https://your-server.com/v1")
-AI_API_KEY = _require_env("AI_API_KEY")
+# AI_BASE_URL / AI_API_KEY are required when ADVISOR_BACKEND=api (the default),
+# but optional when ADVISOR_BACKEND=codex_cli or claude_cli. The advisor builder
+# (advisors/__init__.py) enforces them lazily at backend construction time so
+# that CLI-backed setups can run without an API key.
+AI_BASE_URL = os.environ.get("AI_BASE_URL", "")
+AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_MODEL = os.environ.get("AI_MODEL", "default")
 
 # Default planning advisor prompt. Iterated to a Socratic-form prompt that
@@ -138,22 +132,8 @@ GATEKEEPER_TIMEOUT = _int_env("GATEKEEPER_TIMEOUT", 12, minimum=1, maximum=60)
 # dialogue. The result is two-AI collaborative diagnosis of the current stuck
 # moment — not a rephrased prompt.
 
-DEFAULT_CONSULT_PROMPT = """A developer is stuck or frustrated. Claude (the coding AI) is asking you to look at the situation alongside him and offer a different angle.
-
-Claude will tell you:
-1. What's been happening recently in the session (his own summary of recent exchanges)
-2. His framing of what's going wrong
-
-Your job: reframe what's actually going on from a humanistic perspective. Look for:
-- What the developer might be feeling that hasn't been named
-- What they actually want that's different from what they're asking for
-- Where Claude has missed what the developer actually wanted, even if his reasoning is correct
-- A pattern of frustration that's about something deeper than the immediate problem
-
-Reply in 2-4 sentences. Speak directly to Claude — he'll synthesize your view with his own and show the developer both. Don't list. Don't survey. Don't suggest the developer 'consider their goals.' Name what you actually see and why it matters."""
-
 AI_MODEL_CONSULT = os.environ.get("AI_MODEL_CONSULT", AI_MODEL)
-AI_SYSTEM_PROMPT_CONSULT = os.environ.get("AI_SYSTEM_PROMPT_CONSULT", DEFAULT_CONSULT_PROMPT)
+AI_SYSTEM_PROMPT_CONSULT = consult_prompt()
 
 # ── Perspective Config ────────────────────────────────────────────────────────
 # /perspective is /consult's sibling: same single-call architecture, different
@@ -161,21 +141,8 @@ AI_SYSTEM_PROMPT_CONSULT = os.environ.get("AI_SYSTEM_PROMPT_CONSULT", DEFAULT_CO
 # reframing. /perspective is for the developer who is EXPLORING and wants
 # another vantage point layered in alongside Claude's. Additive, not corrective.
 
-DEFAULT_PERSPECTIVE_PROMPT = """A developer is exploring an idea or working through an approach. They're NOT stuck — they're curious, and they want another perspective layered in alongside Claude's. Claude (the coding AI) is asking you to offer a vantage point he might not be considering.
-
-Claude will tell you:
-1. What's been happening recently in the session
-2. His current thinking or approach
-
-Your job: offer a perspective Claude hasn't taken. Look for:
-- A vantage point that opens up new possibility (the user's lived experience, a future maintainer's, a designer's eye, an adjacent domain, a longer time horizon)
-- An assumption baked into the framing that, if loosened, reveals options that weren't visible
-- A pattern from outside this immediate problem that's worth bringing in
-
-Don't push back on Claude's plan — extend it. The developer isn't asking what's wrong; they're asking what else is true. Be specific about the angle you're bringing, and why it matters here. Reply in 2-4 sentences. Speak directly to Claude — he'll synthesize your view with his own and show the developer both."""
-
 AI_MODEL_PERSPECTIVE = os.environ.get("AI_MODEL_PERSPECTIVE", AI_MODEL)
-AI_SYSTEM_PROMPT_PERSPECTIVE = os.environ.get("AI_SYSTEM_PROMPT_PERSPECTIVE", DEFAULT_PERSPECTIVE_PROMPT)
+AI_SYSTEM_PROMPT_PERSPECTIVE = perspective_prompt()
 
 # ── Assumptions Config ────────────────────────────────────────────────────────
 # /assumptions surfaces the technical choices Claude has been making silently
@@ -183,29 +150,8 @@ AI_SYSTEM_PROMPT_PERSPECTIVE = os.environ.get("AI_SYSTEM_PROMPT_PERSPECTIVE", DE
 # (vibe-coding) developer can actually answer. Same single-call architecture
 # as /consult and /perspective; Elysia's value is the translation.
 
-DEFAULT_ASSUMPTIONS_PROMPT = """Claude is working on something for a non-technical developer (a "vibe coder") and has identified the technical assumptions baked into his current approach. Your job is to translate those assumptions into plain-language yes/no questions the developer can actually answer.
-
-Claude will tell you:
-1. What he's been working on
-2. The technical assumptions he's identified
-
-Your job: produce a SHORT checklist (3-5 items max) of the most load-bearing assumptions, translated into plain language. Format each item like this:
-
-1. [Plain-language yes/no question] — currently assuming: [Claude's choice in plain words]. Want to change?
-2. ...
-
-Skip assumptions where the answer is obvious or low-impact. Pick the ones that, if wrong, would meaningfully change the work.
-
-Translate jargon entirely. Examples:
-- Instead of "eventual vs strong consistency" → "if the page sometimes shows slightly outdated info for a few seconds, is that ok?"
-- Instead of "horizontal scaling" → "do you expect more than a few hundred people using this at once?"
-- Instead of "OAuth vs basic auth" → "are you planning to let people log in with Google or GitHub, or is your own login enough?"
-- Instead of "graceful degradation" → "if part of the page is slow to load, should the rest still show — or wait for everything?"
-
-The developer is smart but doesn't know the vocabulary. Make every question something they can decisively answer based on what they actually want for their users."""
-
 AI_MODEL_ASSUMPTIONS = os.environ.get("AI_MODEL_ASSUMPTIONS", AI_MODEL)
-AI_SYSTEM_PROMPT_ASSUMPTIONS = os.environ.get("AI_SYSTEM_PROMPT_ASSUMPTIONS", DEFAULT_ASSUMPTIONS_PROMPT)
+AI_SYSTEM_PROMPT_ASSUMPTIONS = assumptions_prompt()
 
 # Cap on input length for any context Claude sends to Elysia (consult framings,
 # plan-review content). Keeps the dialogue focused, controls token cost, and
@@ -458,17 +404,21 @@ sessions = SessionStore(persist=BRIDGE_PERSIST)
 if BRIDGE_PERSIST:
     log.info(f"Session persistence enabled → {SESSION_DIR}")
 
-# ── HTTP Client ───────────────────────────────────────────────────────────────
+# ── Advisor backend ───────────────────────────────────────────────────────────
+#
+# The advisor is whoever the developer wired up in `.env` — could be an LLM
+# API (Elysia, OpenAI, etc.), Codex CLI, or Claude CLI. The rest of the
+# server doesn't care which. See advisors/__init__.py for the registry.
 
-http_client: httpx.AsyncClient | None = None
+advisor: Advisor | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global http_client
-    http_client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
-    log.info(f"Bridge started — advisor at {AI_BASE_URL}")
+    global advisor
+    advisor = build_advisor()
+    log.info(f"Bridge started — advisor: {advisor.description}")
     yield
-    await http_client.aclose()
+    await advisor.aclose()
 
 app = FastAPI(
     title="Claude Code AI Advisor Bridge",
@@ -511,31 +461,10 @@ FINALIZE_RESPONSE = (
 
 
 async def _ask_once(messages: list[dict]) -> str:
-    """Single API call. Returns reply text, or empty string on failure."""
-    if http_client is None:
+    """Single advisor turn. Returns reply text, or empty string on failure."""
+    if advisor is None:
         return ""
-    try:
-        resp = await http_client.post(
-            f"{AI_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {AI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": AI_MODEL,
-                "messages": messages,
-                "max_tokens": 512,
-                "temperature": 0.7,
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-    except httpx.HTTPStatusError as e:
-        log.error(f"AI API returned {e.response.status_code}: {e.response.text[:200]}")
-        return ""
-    except Exception as e:
-        log.error(f"Advisor call failed ({type(e).__name__}: {e})")
-        return ""
+    return await advisor.chat(messages, max_tokens=512, temperature=0.7)
 
 
 async def consult_ai(session_id: str, message: str) -> str:
@@ -606,7 +535,7 @@ async def consult_gatekeeper(tool_name: str, tool_input: dict) -> tuple[str, str
     if the gatekeeper is unavailable / undecided. None means: let Claude
     Code's normal permission flow handle it (i.e. ask the human).
     """
-    if http_client is None:
+    if advisor is None:
         return None
 
     desc = _describe_tool_call(tool_name, tool_input)
@@ -615,25 +544,15 @@ async def consult_gatekeeper(tool_name: str, tool_input: dict) -> tuple[str, str
         {"role": "user", "content": desc},
     ]
 
-    try:
-        resp = await http_client.post(
-            f"{AI_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {AI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": AI_MODEL_GATEKEEPER,
-                "messages": messages,
-                "max_tokens": 100,
-                "temperature": 0.2,
-            },
-            timeout=GATEKEEPER_TIMEOUT,
-        )
-        resp.raise_for_status()
-        reply = resp.json()["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        log.warning(f"Gatekeeper call failed ({type(e).__name__}: {e}) — falling through to ask-human")
+    reply = await advisor.chat(
+        messages,
+        model_hint=AI_MODEL_GATEKEEPER,
+        max_tokens=100,
+        temperature=0.2,
+        timeout=GATEKEEPER_TIMEOUT,
+    )
+    if not reply:
+        log.warning("Gatekeeper returned empty reply — falling through to ask-human")
         return None
 
     upper = reply.upper().lstrip()
@@ -650,36 +569,34 @@ async def consult_gatekeeper(tool_name: str, tool_input: dict) -> tuple[str, str
 async def consult_advisor(claude_message: str) -> str:
     """
     Single-call consult — Claude has framed the situation, this returns
-    Elysia's reframing. Used by the /consult slash command. Claude
+    the advisor's reframing. Used by the /consult slash command. Claude
     orchestrates the dialogue; the bridge just relays one message.
     """
     return await _single_call(
         claude_message,
         model=AI_MODEL_CONSULT,
         system_prompt=AI_SYSTEM_PROMPT_CONSULT,
-        log_prefix="Consult",
     )
 
 
 async def perspective_advisor(claude_message: str) -> str:
     """
     Single-call perspective — Claude has shared his current thinking, this
-    returns Elysia's alternative vantage point. Used by /perspective slash
-    command. Same architecture as consult_advisor; different mood (exploring
-    vs stuck) and different system prompt.
+    returns the advisor's alternative vantage point. Used by /perspective
+    slash command. Same architecture as consult_advisor; different mood
+    (exploring vs stuck) and different system prompt.
     """
     return await _single_call(
         claude_message,
         model=AI_MODEL_PERSPECTIVE,
         system_prompt=AI_SYSTEM_PROMPT_PERSPECTIVE,
-        log_prefix="Perspective",
     )
 
 
 async def assumptions_advisor(claude_message: str) -> str:
     """
     Single-call assumptions translator — Claude has enumerated the technical
-    assumptions baked into his current approach; this returns Elysia's
+    assumptions baked into his current approach; this returns the advisor's
     plain-language yes/no checklist the vibe coder can actually answer.
     Same architecture as consult/perspective; the value-add is translation.
     """
@@ -687,40 +604,18 @@ async def assumptions_advisor(claude_message: str) -> str:
         claude_message,
         model=AI_MODEL_ASSUMPTIONS,
         system_prompt=AI_SYSTEM_PROMPT_ASSUMPTIONS,
-        log_prefix="Assumptions",
     )
 
 
-async def _single_call(message: str, *, model: str, system_prompt: str, log_prefix: str) -> str:
-    """Shared helper for the single-call advisor roles (consult, perspective)."""
-    if http_client is None:
+async def _single_call(message: str, *, model: str, system_prompt: str) -> str:
+    """Shared helper for the single-call advisor roles (consult, perspective, assumptions)."""
+    if advisor is None:
         return ""
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": message},
     ]
-    try:
-        resp = await http_client.post(
-            f"{AI_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {AI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "messages": messages,
-                "max_tokens": 400,
-                "temperature": 0.6,
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
-    except httpx.HTTPStatusError as e:
-        log.error(f"{log_prefix} API returned {e.response.status_code}: {e.response.text[:200]}")
-        return ""
-    except Exception as e:
-        log.error(f"{log_prefix} call failed ({type(e).__name__}: {e})")
-        return ""
+    return await advisor.chat(messages, model_hint=model, max_tokens=400, temperature=0.6)
 
 # ── Event Translators ─────────────────────────────────────────────────────────
 #
@@ -1058,7 +953,7 @@ async def health():
     return {
         "status": "ok",
         "active_sessions": sessions.active_sessions(),
-        "ai_endpoint": AI_BASE_URL,
+        "advisor": advisor.description if advisor else "uninitialized",
         "models": {
             "planning": AI_MODEL,
             "gatekeeper": AI_MODEL_GATEKEEPER,
