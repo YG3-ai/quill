@@ -53,7 +53,7 @@ In MCP-aware agents: tool names are `quill_consult`, `quill_perspective`,
 In Claude Code:
 
 ```
-/plugin marketplace add yg3/quill
+/plugin marketplace add YG3-ai/quill
 /plugin install quill@yg3
 ```
 
@@ -69,7 +69,7 @@ these are Claude-Code-specific extras on top of the three skills.
 For now, install from source. (PyPI package planned.)
 
 ```bash
-git clone https://github.com/yg3/quill ~/quill
+git clone https://github.com/YG3-ai/quill ~/quill
 cd ~/quill/plugins/quill/server
 python3 -m venv .venv
 source .venv/bin/activate

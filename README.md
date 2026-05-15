@@ -46,55 +46,138 @@ deliberate dialogue, billed against subscriptions you already have.**
 
 ## Install
 
-### If you use Claude Code
+### Prerequisites
 
-Inside Claude Code:
+You'll need:
 
-```bash
-/plugin marketplace add yg3/quill
-/plugin install quill@yg3
-```
+- **Python 3.10+** and `git`
+- **Claude Code** (if using the plugin path), OR **any MCP-aware agent**
+  (Codex CLI, Cursor, Cline, Continue) for the MCP path
+- **A logged-in advisor CLI** matching whichever backend you'll
+  configure:
+  - `codex_cli` backend → `npm install -g @openai/codex` then `codex login`
+  - `claude_cli` backend → `npm install -g @anthropic-ai/claude-code`
+    then run `claude` once to log in
+  - `api` backend → an OpenAI-compatible API key (Elysia / OpenAI /
+    OpenRouter / Ollama / Together / etc.)
 
-The plugin's monitor auto-starts the FastAPI server. The three skills
-become `/quill:consult`, `/quill:perspective`, `/quill:assumptions`.
+### Path 1 — Claude Code plugin
 
-### If you use Codex CLI / Cursor / Cline / Continue / etc.
+1. **Install the plugin** (inside Claude Code):
 
-Quill ships an MCP server that any MCP-aware agent can talk to. After
-cloning this repo and `pip install -r plugins/quill/server/requirements.txt`,
-add to your agent's MCP config:
+   ```
+   /plugin marketplace add YG3-ai/quill
+   /plugin install quill@yg3
+   ```
 
-```json
-{
-  "mcpServers": {
-    "quill": {
-      "command": "python3",
-      "args": ["/path/to/BRIDGES-Plugin/plugins/quill/server/mcp_server.py"]
-    }
-  }
-}
-```
+2. **Set up the Python server** (one-time, from a terminal):
 
-Tools become `quill_consult`, `quill_perspective`, `quill_assumptions`.
+   The plugin install copies files but doesn't install Python deps.
+   The plugin's files land somewhere under `~/.claude/plugins/`; the
+   exact path is shown after install.
+
+   ```bash
+   cd <plugin-install-path>/plugins/quill/server
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   cp .env.example .env
+   # then edit .env to set ADVISOR_BACKEND (see below)
+   ```
+
+3. **Restart Claude Code.** The plugin's monitor entry should fire and
+   start the FastAPI server in the background. If it doesn't — see
+   [Troubleshooting](#troubleshooting).
+
+4. The three skills become `/quill:consult`, `/quill:perspective`,
+   `/quill:assumptions`.
+
+### Path 2 — MCP server (for Codex CLI / Cursor / Cline / Continue / etc.)
+
+1. **Clone + install:**
+
+   ```bash
+   git clone https://github.com/YG3-ai/quill ~/quill
+   cd ~/quill/plugins/quill/server
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   cp .env.example .env
+   # then edit .env to set ADVISOR_BACKEND (see below)
+   ```
+
+2. **Wire into your agent's MCP config.**
+
+   For **Codex CLI**:
+
+   ```bash
+   codex mcp add quill \
+     --env ADVISOR_BACKEND=claude_cli \
+     -- ~/quill/plugins/quill/server/.venv/bin/python3 \
+        ~/quill/plugins/quill/server/mcp_server.py
+   ```
+
+   For **Cursor / Cline / Continue / other MCP-aware agents**, consult
+   the agent's MCP docs. The `command` + `args` + `env` shape is the
+   same — point at the venv's `python3` and `mcp_server.py`, set
+   `ADVISOR_BACKEND` via env.
+
+3. Tools available: `quill_consult`, `quill_perspective`,
+   `quill_assumptions`. (Note: in Codex CLI's non-interactive `exec`
+   mode you'll need `--dangerously-bypass-approvals-and-sandbox` to
+   call MCP tools without a human approving each call. Interactive
+   mode just prompts for approval.)
 
 ## Configuring the advisor backend
 
-Copy `plugins/quill/server/.env.example` → `.env`. Set:
+In `plugins/quill/server/.env`:
 
 ```
 ADVISOR_BACKEND=codex_cli   # or claude_cli, or api
 ```
 
-For `codex_cli`: the `codex` binary must be on `$PATH`. Logged in via
-your ChatGPT Plus/Pro account.
+- **`codex_cli`** — uses the `codex` binary; bills against your
+  ChatGPT Plus/Pro subscription. No API key needed.
+- **`claude_cli`** — uses the `claude` binary; bills against your
+  Claude Pro/Max subscription. No API key needed.
+- **`api`** — uses an OpenAI-compatible HTTP endpoint. Also set
+  `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`. Recommended pairing:
+  **Elysia** (sign up at [app.yg3.ai](https://app.yg3.ai), paid YG3
+  subscription). Or BYO: OpenRouter, Ollama, Together, OpenAI direct,
+  Groq, Anyscale — anything OpenAI-compatible.
 
-For `claude_cli`: the `claude` binary must be on `$PATH`. Logged in via
-your Claude Pro/Max account.
+## Troubleshooting
 
-For `api`: also set `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`. Recommended
-default: pair with **Elysia** (sign up at [app.yg3.ai](https://app.yg3.ai),
-paid YG3 subscription). Or BYO any OpenAI-compatible endpoint —
-OpenRouter, Ollama, Together, OpenAI direct, etc.
+For the full guide, see [USER_GUIDE.md → Troubleshooting](USER_GUIDE.md#troubleshooting).
+
+The most common issues:
+
+**`BRIDGE UNAVAILABLE` when invoking a Quill skill in Claude Code**
+
+The local FastAPI server isn't running. Start it manually:
+
+```bash
+cd <plugin-install-path>/plugins/quill/server
+source .venv/bin/activate
+python3 bridge_server.py
+```
+
+This is the most common issue today: monitor auto-start across plugin
+installs is one of the things we're still verifying. If you hit it,
+report it (issue or `help@yg3.ai`) — that data helps us close the gap.
+
+**Empty reply from a CLI advisor**
+
+Check `plugins/quill/server/quill.log` for an error like
+`binary 'codex' not found` or `binary 'claude' not found`. Either
+install the missing CLI, or set `CODEX_BIN` / `CLAUDE_BIN` in `.env`
+to its full path.
+
+**`claude: command not found` even though the VS Code extension works**
+
+The VS Code Claude Code extension doesn't install a standalone
+`claude` CLI. Install it separately:
+`npm install -g @anthropic-ai/claude-code`.
 
 ## Free, with a tip jar
 
@@ -161,17 +244,30 @@ both the FastAPI bridge (Claude Code plugin) and the MCP server (Codex
 CLI / Cursor / Cline / Continue). Real install paths still need polish
 for non-technical users — see [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
-## Trying it locally
+## Local development (for contributors)
+
+To work on Quill itself, run the server directly from your clone:
 
 ```bash
-# Inside Claude Code:
-/plugin marketplace add /Users/samuelknox/Documents/BRIDGES-Plugin
+git clone https://github.com/YG3-ai/quill
+cd quill/plugins/quill/server
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # set ADVISOR_BACKEND
+ADVISOR_BACKEND=codex_cli python3 bridge_server.py
+```
+
+To install the plugin from a local clone instead of from the GitHub
+marketplace (useful for testing plugin changes):
+
+```
+/plugin marketplace add /absolute/path/to/your/quill/clone
 /plugin install quill@yg3
 ```
 
 Check `plugins/quill/server/quill.log` for the server startup line. To
-test the welcome flow again after a fresh install, delete
-`~/.quill/.welcomed` first.
+test the welcome flow again on a dev machine: `rm ~/.quill/.welcomed`.
 
 ## What's NOT done yet
 
