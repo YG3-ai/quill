@@ -91,7 +91,7 @@ from study 2 to identify the break-even point.
 
 ---
 
-## Planned HuggingFace presence
+## Planned Paper
 
 When studies produce shippable artifacts:
 
@@ -137,7 +137,7 @@ If you're a researcher interested in this space:
 - Open an issue describing a study shape we should run
 - Contribute to one of the open questions above — the corpus needs
   building, the eval needs designing
-- Email research@yg3.ai (placeholder until set up)
+- Email research@yg3.ai
 
 If you're a developer just trying to ship code with Quill: that's
 already contributing — Quill exists to be used, and observations from
