@@ -1,4 +1,6 @@
-# Quill — a thinking partner between two coding agents
+![Quill — ask another mind.](imgs/quill_banner_readme.png)
+
+# Quill — *ask another mind.*
 
 **Free, MIT-licensed open source. A working product *and* an active
 research project on coding-agent collaboration.**
@@ -101,9 +103,7 @@ daily and wanted others to have it too. Open source means you can read
 what it does, fork it, contribute, or just inspect it before you wire
 it into your workflow.
 
-If Quill earns its keep in your workflow, you can leave a tip:
-
-→ **[Support Quill ($5 suggested, name your price)](https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i)**
+[![Help keep Quill open and independent — Support via Stripe](imgs/support_quill_readme.png)](https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i)
 
 100% of donations go to YG3 and fund continued development + the
 research direction below.
