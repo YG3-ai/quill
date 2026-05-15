@@ -1,0 +1,25 @@
+Use a managed auth provider. Do not roll your own bcrypt + JWT for this MVP.
+
+Given 2 cofounders, a 6-week launch target, and no current compliance requirements, auth is not where you want to spend product-building time. “Simple” custom auth quickly becomes password reset, email verification, session revocation, refresh token rotation, account linking, OAuth edge cases, bot abuse, secure cookie handling, and migration headaches.
+
+My default recommendation:
+
+**Use Clerk if you are building a React/Next.js-style app.**  
+It is usually the fastest path to a polished MVP: hosted UI, social login, magic links/passwords, session handling, middleware, and decent developer ergonomics.
+
+**Use Firebase Auth if you are already using Firebase heavily.**  
+If your backend/data layer is Firestore, Firebase Hosting, Cloud Functions, or you are building mobile-first, Firebase Auth fits naturally.
+
+**Use Auth0 if you expect enterprise/B2B identity soon.**  
+Auth0 is strong for SAML, enterprise SSO, complex identity flows, and larger org requirements, but it may be heavier than you need for a six-week MVP.
+
+**Avoid rolling your own unless auth itself is core to your product.**  
+Using bcrypt correctly is only a small part of auth. JWTs also introduce footguns around invalidation, expiry, storage, refresh flows, and compromised tokens.
+
+So the practical answer is:
+
+If you are using Next.js/React: **pick Clerk and move on.**  
+If you are already on Firebase: **use Firebase Auth.**  
+If you know B2B enterprise SSO is coming soon: **consider Auth0.**
+
+For your current facts, I would choose **Clerk**, integrate it in a day, and revisit only after you have real users and real identity requirements.

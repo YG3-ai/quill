@@ -1,0 +1,14 @@
+Yes, you should do one more pass before shipping. Passing unit tests are useful, but this function has three different contracts: billing needs correctness, display needs predictable formatting behavior, and CSV export may fail silently until much later.
+
+The highest-value check is a characterization test: run the old and new parser against a realistic sample of historical production-like inputs and diff the outputs. Include invalid dates, empty values, timezone-bearing strings, locale-sensitive formats, DST boundaries, leap days, month/day ambiguity, and whatever formats CSV imports or exports actually see.
+
+Pay closest attention to the caller that would notice a regression last. Billing mistakes may surface quickly. Display bugs are visible. CSV export problems can sit unnoticed until reporting or reconciliation time, so that path deserves explicit coverage.
+
+Before production, I’d want:
+
+1. Old-vs-new output diff over real historical samples.
+2. Tests for parse failures, timezone behavior, ambiguous formats, and boundary dates.
+3. A quick audit of each caller’s expectations: return type, null/error behavior, timezone normalization, and formatting assumptions.
+4. If possible, deploy behind logging or compare-mode briefly: parse with both implementations, use the new result, but log disagreements.
+
+If the refactor is truly behavior-preserving, the diff should be boring. If it is not boring, your tests just found the gap before production did.

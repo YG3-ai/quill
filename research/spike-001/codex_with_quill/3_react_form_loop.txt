@@ -1,0 +1,38 @@
+You may be treating this as a component-structure problem when it is probably an ownership problem.
+
+The smell is not that the form handles state, validation, submission, errors, and loading. A form often has to coordinate all of those. The smell is that you may not have decided which layer owns each kind of state and what the form’s job actually is.
+
+Ask one concrete question:
+
+> When submit fails, whose problem is it?
+
+For example:
+
+- Field validation failure: probably the form’s concern.
+- Server rejection: maybe the submission layer’s concern.
+- Global auth/session/network failure: probably the parent or app shell’s concern.
+- Loading state: maybe owned by the async action, with the form only rendering it.
+- Error display: maybe split between field errors, form-level errors, and external/system errors.
+
+Until those boundaries are explicit, every refactor can look reasonable because each one is optimizing a different hidden model.
+
+A useful way to reset:
+
+```tsx
+<Form
+  initialValues={...}
+  validate={validate}
+  onSubmit={submit}
+/>
+```
+
+Then define the contract in plain language before touching code:
+
+- The form owns draft field values.
+- The form owns touched/dirty state.
+- The form owns client validation.
+- `onSubmit` owns the side effect.
+- Server errors are returned to the form in a normalized shape.
+- The parent owns whether this form exists, what happens after success, and any app-level failures.
+
+Your missing piece is likely not another hook, reducer, or abstraction. It is the decision about responsibility. Once you can say, “this form is only responsible for collecting valid input and invoking a submit contract,” the component shape should become much less mysterious.

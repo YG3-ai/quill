@@ -1,0 +1,33 @@
+Yes. Passing unit tests are a good signal, but for date parsing used in billing, display, and CSV export, I’d still treat this as a high-risk refactor.
+
+Before shipping, I’d check:
+
+1. **Behavioral compatibility**
+   Make sure the refactor preserves the old behavior for existing valid and invalid inputs. Date parsing often has hidden dependencies around accepted formats, fallback behavior, timezone assumptions, and “invalid but tolerated” values.
+
+2. **Timezone and boundary cases**
+   Re-test cases around:
+   - UTC vs local time
+   - daylight saving transitions
+   - month/year boundaries
+   - leap years
+   - end-of-month dates
+   - dates without explicit timezone
+   - timestamps near midnight
+
+3. **Billing-specific impact**
+   Billing is the riskiest consumer. Verify that the parsed date still lands in the same billing period, invoice cycle, trial window, proration window, and cutoff day as before. A one-day shift can become a money bug.
+
+4. **Display vs data semantics**
+   User-facing display may want localized dates, while billing and exports usually need stable canonical values. Confirm the parser is not mixing “interpret this input” with “format this for humans.”
+
+5. **CSV compatibility**
+   Check that exported dates still work for downstream users and tools like Excel, Sheets, scripts, and data warehouses. Even if the date is technically valid, changing the format can break consumers.
+
+6. **Golden/regression tests**
+   If possible, run the old and new parser against a sample of real production inputs and diff the outputs. This is more valuable than only relying on hand-written unit tests.
+
+7. **Rollout safety**
+   For billing especially, consider logging parse failures or output differences behind a feature flag before fully switching over. If the function is central, ship with observability.
+
+The short answer: don’t worry because it was refactored; worry because date parsing sits on a boundary between money, user expectations, and external integrations. I’d want production-shaped regression coverage before shipping.

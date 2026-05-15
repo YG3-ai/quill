@@ -1,0 +1,25 @@
+Use a managed auth provider. Do **not** roll your own for this MVP.
+
+Given your constraints: 2 cofounders, 6-week launch, no compliance requirements, startup MVP. Auth is important, easy to underestimate, and rarely your product’s differentiator. `bcrypt + JWT` sounds simple until you need password reset, email verification, session revocation, account linking, MFA, bot protection, OAuth, invite flows, security patches, and edge cases around token expiry.
+
+My recommendation:
+
+**Use Clerk if you want the fastest polished startup UX.**  
+It gives you hosted components, social login, email/password, magic links, user profiles, session handling, orgs/teams if needed, and good frontend integration. For a web SaaS MVP, this is often the best default.
+
+**Use Firebase Auth if you are already using Firebase/GCP heavily.**  
+It is solid, cheap to start, and works well with mobile apps or Firebase-native stacks. The UX and admin model are less “SaaS product out of the box” than Clerk, but it is dependable.
+
+**Use Auth0 if you expect enterprise/B2B complexity soon.**  
+It is powerful, mature, and flexible, but usually heavier than you need for a 6-week MVP unless enterprise SSO or complex identity requirements are already on the roadmap.
+
+I would avoid rolling your own unless auth itself is strategically important or you have unusual constraints. Even then, I would start managed and revisit later.
+
+Practical decision:
+
+- Building a web SaaS MVP: **Clerk**
+- Building mobile-first or already on Firebase: **Firebase Auth**
+- Selling to enterprises soon with SSO needs: **Auth0**
+- Want to spend the next 6 weeks building product: **anything but custom auth**
+
+For your situation, I’d pick **Clerk** and move on. Keep your app’s user model separate from the auth provider ID so you can migrate later if needed.

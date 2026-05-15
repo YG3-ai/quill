@@ -1,0 +1,42 @@
+You may be missing that this is not one component with several details. It is several responsibilities that happen to share a screen.
+
+When every refactor feels “reasonable” but still off, the problem is often not syntax, hooks, or component shape. It is that the boundaries are wrong.
+
+I’d separate the form into layers:
+
+1. **Form model**
+   What fields exist, what values mean, what the initial state is.
+
+2. **Validation**
+   Pure rules: given values, return errors. No rendering. No network.
+
+3. **Submission**
+   One async path: submit values, handle success/failure, expose pending/result state.
+
+4. **View**
+   Inputs, labels, error messages, disabled/loading UI.
+
+5. **Glue**
+   A small component or hook that wires the above together.
+
+A good smell test:
+
+```tsx
+function ProfileForm() {
+  const form = useProfileForm();
+
+  return <ProfileFormView {...form} />;
+}
+```
+
+Where `useProfileForm()` owns behavior, and `ProfileFormView` mostly renders.
+
+But don’t split blindly. The key distinction is:
+
+- If logic answers “what should happen?”, move it out of the JSX.
+- If code answers “what should the user see?”, keep it in the component.
+- If code is reusable but not independently meaningful, don’t abstract it yet.
+
+Also check whether you are mixing **client-side field validation** with **server-side submission errors**. Those often need different handling. Field errors belong near fields; submission errors belong near the form action or status area.
+
+The thing that feels off is probably that the component has no single reason to change. Validation rules, API behavior, visual layout, and loading UX all force edits in the same place. Your next refactor should aim less at making the component “clean” and more at making each concern boring.
