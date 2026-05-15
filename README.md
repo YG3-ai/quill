@@ -61,38 +61,10 @@ You'll need:
   - `api` backend → an OpenAI-compatible API key (Elysia / OpenAI /
     OpenRouter / Ollama / Together / etc.)
 
-### Path 1 — Claude Code plugin
+### Path 1 — MCP server (for Codex CLI / Cursor / Cline / Continue / etc.)
 
-1. **Install the plugin** (inside Claude Code):
-
-   ```
-   /plugin marketplace add YG3-ai/quill
-   /plugin install quill@yg3
-   ```
-
-2. **Set up the Python server** (one-time, from a terminal):
-
-   The plugin install copies files but doesn't install Python deps.
-   The plugin's files land somewhere under `~/.claude/plugins/`; the
-   exact path is shown after install.
-
-   ```bash
-   cd <plugin-install-path>/plugins/quill/server
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   cp .env.example .env
-   # then edit .env to set ADVISOR_BACKEND (see below)
-   ```
-
-3. **Restart Claude Code.** The plugin's monitor entry should fire and
-   start the FastAPI server in the background. If it doesn't — see
-   [Troubleshooting](#troubleshooting).
-
-4. The three skills become `/quill:consult`, `/quill:perspective`,
-   `/quill:assumptions`.
-
-### Path 2 — MCP server (for Codex CLI / Cursor / Cline / Continue / etc.)
+This is the recommended path. The MCP server works in any MCP-aware
+agent and is the primary surface Quill is built around.
 
 1. **Clone + install:**
 
@@ -127,6 +99,42 @@ You'll need:
    mode you'll need `--dangerously-bypass-approvals-and-sandbox` to
    call MCP tools without a human approving each call. Interactive
    mode just prompts for approval.)
+
+### Path 2 — Claude Code plugin
+
+If you primarily use Claude Code, the plugin is a convenience wrapper
+that exposes the three thinking-partner skills as slash commands and
+adds Claude-Code-specific extras (safety gatekeeper on Bash/Edit/Write,
+pre-push quality scans).
+
+1. **Install the plugin** (inside Claude Code):
+
+   ```
+   /plugin marketplace add YG3-ai/quill
+   /plugin install quill@yg3
+   ```
+
+2. **Set up the Python server** (one-time, from a terminal):
+
+   The plugin install copies files but doesn't install Python deps.
+   The plugin's files land somewhere under `~/.claude/plugins/`; the
+   exact path is shown after install.
+
+   ```bash
+   cd <plugin-install-path>/plugins/quill/server
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   cp .env.example .env
+   # then edit .env to set ADVISOR_BACKEND (see below)
+   ```
+
+3. **Restart Claude Code.** The plugin's monitor entry should fire and
+   start the FastAPI server in the background. If it doesn't — see
+   [Troubleshooting](#troubleshooting).
+
+4. The three skills become `/quill:consult`, `/quill:perspective`,
+   `/quill:assumptions`.
 
 ## Configuring the advisor backend
 
