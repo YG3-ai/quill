@@ -291,14 +291,6 @@ See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list.
 
 [MIT](LICENSE). Copyright (c) 2026 YG3.
 
-## Relationship to the open-source BRIDGES repo
-
-Quill's server core started as a copy of the local BRIDGES experimental
-codebase at `../BRIDGES`. The two have diverged substantially: this
-codebase has the advisor abstraction, MCP server, CLI advisor backends,
-welcome/donation surfacing, and the research framing. Both are now
-MIT-licensed; sync strategy is informal (manual port of useful changes
-in either direction).
 
 ## Contributing
 
