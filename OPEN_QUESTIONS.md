@@ -27,7 +27,7 @@ codex mcp add quill --env ADVISOR_BACKEND=claude_cli -- quill-mcp
 **Work:**
 - Add `pyproject.toml` with proper package metadata
 - Decide whether `quill-mcp` ships only the MCP-relevant files (mcp_server, advisors, prompts) or the whole server tree
-- Set up Yugen PyPI account
+- Set up YG3 PyPI account
 - Wire a small release process (manual `python -m build && twine upload`
   is fine for v0.1)
 
@@ -125,7 +125,7 @@ For the research direction we need data. Per the research plan:
 - Privacy posture: what data leaves the machine, retention period,
   publication terms
 - A clear `QUILL_TELEMETRY=1` opt-in env var (default off)
-- Wire to a Yugen-hosted endpoint or a S3 bucket
+- Wire to a YG3-hosted endpoint or a S3 bucket
 
 Don't build until we have a research design ready to use it. See
 [RESEARCH.md](RESEARCH.md).
@@ -138,7 +138,7 @@ These were open questions that the 2026-05-15 strategic direction
 resolved:
 
 - **Product name** — `quill` plugin, `yg3` marketplace, `Quill` brand,
-  Yugen LLC owner, `help@yg3.ai` contact (resolved 2026-05-09)
+  YG3 owner (Yugen is parent company), `help@yg3.ai` contact (resolved 2026-05-09)
 - **License key validation** — N/A, free open source, no gating
 - **API key onboarding** — `.env` with documented options; CLI backends
   need no API key

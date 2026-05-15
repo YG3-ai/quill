@@ -5,6 +5,8 @@ Quill is both a free open-source product *and* a research project on
 dual-agent setup; the research uses what Quill mediates to study how
 agents differ when they think alongside each other.
 
+**Authors:** Jacqueline Carter, Sam Knox, Partha Unnava ([YG3](https://yg3.ai)).
+
 This document is the scratch pad for that research direction. Concrete
 data, papers, and HuggingFace artifacts will land here as they happen.
 
@@ -93,7 +95,7 @@ from study 2 to identify the break-even point.
 
 When studies produce shippable artifacts:
 
-- **Dataset**: `yugen/quill-coding-agent-dialogues` — anonymized
+- **Dataset**: `yg3/quill-coding-agent-dialogues` — anonymized
   framings + advisor responses across backends, for community study.
   Opt-in collection from real Quill usage (with consent), or
   synthetic-but-realistic curated scenarios.

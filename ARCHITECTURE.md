@@ -241,7 +241,7 @@ transport-specific glue is duplicated.
 ## Decisions baked in (with rationale)
 
 - **Local-server BYOK over hosted SaaS** — chosen because Quill is free
-  and Yugen doesn't want operational burden. See the abandoned hosted-MCP
+  and YG3 doesn't want operational burden. See the abandoned hosted-MCP
   thread for the trade-off analysis.
 - **One repo, two surfaces (plugin + MCP)** — the shared core (server,
   advisors, prompts) is the asset; splitting would mean

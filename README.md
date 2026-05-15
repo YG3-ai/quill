@@ -9,7 +9,7 @@ Pro subscription, you have a free dual-AI coding setup.** No API key
 required, no per-token cost — Quill shells out to whichever CLIs you have
 installed and relays their conversation.
 
-Built by [Yugen LLC](https://yg3.ai). See
+Built by [YG3](https://yg3.ai). See
 [RESEARCH.md](RESEARCH.md) for the research direction.
 
 Three thinking-partner skills available in any agentic CLI Quill is
@@ -105,8 +105,8 @@ If Quill earns its keep in your workflow, you can leave a tip:
 
 → **[Support Quill ($5 suggested, name your price)](https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i)**
 
-100% of donations go to Yugen LLC and fund continued development +
-the research direction below.
+100% of donations go to YG3 and fund continued development + the
+research direction below.
 
 ## Research direction
 
@@ -185,9 +185,15 @@ test the welcome flow again after a fresh install, delete
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list.
 
+## Maintainers
+
+- **Jacqueline Carter**
+- **Sam Knox**
+- **Partha Unnava**
+
 ## License
 
-[MIT](LICENSE). Copyright (c) 2026 Yugen LLC.
+[MIT](LICENSE). Copyright (c) 2026 YG3.
 
 ## Relationship to the open-source BRIDGES repo
 

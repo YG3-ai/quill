@@ -298,9 +298,9 @@ WELCOME_SENTINEL = os.path.expanduser("~/.quill/.welcomed")
 DONATION_URL = "https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i"
 WELCOME_MESSAGE = (
     "Thanks for installing Quill — a thinking partner for Claude Code, "
-    "built by Yugen (yg3.ai). Quill is free. If it earns its keep in your "
-    f"workflow, you can leave a tip at {DONATION_URL} (any amount). "
-    "No pressure. Happy you're here."
+    "built by YG3 (yg3.ai). Quill is free and open source. If it earns "
+    f"its keep in your workflow, you can leave a tip at {DONATION_URL} "
+    "(any amount). No pressure. Happy you're here."
 )
 
 _welcome_consumed = False

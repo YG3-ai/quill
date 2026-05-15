@@ -237,4 +237,4 @@ If it earns its keep:
 
 → **[Support Quill ($5 suggested, name your price)](https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i)**
 
-100% goes to Yugen LLC and funds continued development.
+100% goes to YG3 and funds continued development.
