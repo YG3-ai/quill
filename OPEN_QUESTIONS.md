@@ -1,159 +1,152 @@
 # Open Questions
 
-Things that need decisions before this plugin is customer-ready.
-Grouped by what they block.
+Things that need decisions or work before Quill is rock-solid for
+non-technical users. Reflects the strategic direction committed
+2026-05-15: MIT open source, free with Stripe donations, both plugin
+AND MCP surfaces stay, research angle co-equal with the product.
+
+For the research direction itself, see [RESEARCH.md](RESEARCH.md).
 
 ---
 
-## Blocks shipping
+## Blocks shipping (real install-flow gaps)
 
-### 1. The product name — RESOLVED (2026-05-09)
+### 1. PyPI publication of `quill-mcp`
 
-- **Marketplace name:** `yg3`
-- **Plugin name:** `quill` (slash commands: `/quill:consult`,
-  `/quill:perspective`, `/quill:assumptions`)
-- **Display brand:** Quill — "a thinking partner for Claude Code"
-- **Owner:** Yugen LLC
+The MCP server install today requires `git clone` + venv + `pip install
+-r requirements.txt`. That works for developers but is a UX cliff for
+the wider audience.
 
-Open sub-question: the owner email in `marketplace.json` is still
-`TBD@yg3.ai` — pick the address customers should see.
-
-### 2. License key validation
-
-The plugin currently has zero license enforcement. Anyone who can
-clone the repo can use it. To gate access:
-
-**Where the check happens:** add a startup check in `bridge_server.py`
-that hits `your-company.com/api/license/validate?key=<key>` on first
-hook fire. Cache the result. Fail-closed if invalid.
-
-**Where the key is stored:** options:
-- `.env` file (`QUILL_LICENSE_KEY=...`) — same place as API key
-- Macos Keychain / Windows Credential Manager — more secure, more setup
-- Sent in via env var at install time
-
-**What happens on failure:** clean error to Claude → friendly message
-to developer → link to your account portal.
-
-### 3. API key onboarding
-
-The customer needs to provide an Anthropic (or OpenAI-compatible) API
-key for the AI calls. Today's `.env.example` documents the variable
-names. For a paid product:
-
-- Where does the customer enter their key? `.env` file, GUI, env var,
-  or your portal?
-- Do you provide a default fallback (your company's key, with usage
-  caps)? Or strict BYOK?
-- Onboarding wizard? Or "edit this file" instructions?
-
-### 4. Verify the monitor auto-start actually works
-
-`monitors/monitors.json` currently uses a `bash -c` command that runs
-the Python server in the foreground with redirected stdout. **This is
-untested in the plugin context.** Things to verify:
-
-- Does the monitor command actually run on plugin enable?
-- Does it survive across Claude Code restarts (or does the user need
-  to re-enable)?
-- Does `${CLAUDE_PLUGIN_ROOT}` resolve correctly?
-- What happens if Python isn't installed on the customer's machine?
-- What happens if port 9000 is already in use?
-
-If monitors don't work for this use case, fall back to a manual
-"run this command once" install step in the README.
-
-### 5. Python dependencies install
-
-The server has dependencies (`fastapi`, `uvicorn`, `httpx`, etc.).
-The plugin install copies the directory but does NOT run `pip install`.
-Customer would need to:
+**Plan:** publish `quill-mcp` to PyPI so the install becomes:
 
 ```bash
-cd ~/.claude/plugins/cache/<plugin>/server && pip install -r requirements.txt
+pip install quill-mcp
+codex mcp add quill --env ADVISOR_BACKEND=claude_cli -- quill-mcp
 ```
 
-Options:
-- Bundle a `bin/setup` script that runs on first hook fire (chicken/egg)
-- Document the manual step in the README and a `bin/quill-setup` command
-- Ship a self-contained binary (PyInstaller) instead of raw Python — no
-  Python install required, much bigger download
-- Use `uv` or another Python launcher that handles deps automatically
+**Work:**
+- Add `pyproject.toml` with proper package metadata
+- Decide whether `quill-mcp` ships only the MCP-relevant files (mcp_server, advisors, prompts) or the whole server tree
+- Set up Yugen PyPI account
+- Wire a small release process (manual `python -m build && twine upload`
+  is fine for v0.1)
 
-This is probably **the biggest UX cliff** between "developer-friendly"
-and "vibe-coder-friendly" install.
+This is also the cleanest fix for #2 (Python deps install) for the MCP
+audience.
+
+### 2. Verify monitor auto-start across Claude Code restarts
+
+`plugins/quill/monitors/monitors.json` runs `bash -c '... bridge_server.py'`
+on plugin enable. **Untested in the plugin install context.** Things to
+verify on a fresh customer machine:
+
+- Does the monitor command actually run on plugin enable?
+- Does it survive across Claude Code restarts (or does the user need to
+  re-enable)?
+- Does `${CLAUDE_PLUGIN_ROOT}` resolve correctly?
+- What happens if Python isn't installed?
+- What happens if port 9000 is already in use?
+
+If monitor auto-start is unreliable, fall back to a `quill-start` script
++ README instruction.
+
+### 3. Python dependencies install for the Claude Code plugin
+
+Even with PyPI for the MCP server, the Claude Code plugin's bridge_server
+needs FastAPI / uvicorn / bleach / markdown installed. Plugin install
+copies the directory but doesn't run `pip install`.
+
+Options:
+- Bundle a `bin/setup` script the README instructs users to run once
+- Have the monitor command create a venv + install on first run (slow,
+  but invisible)
+- Ship the plugin assuming `quill-mcp` is already pip-installed (uses
+  its environment)
+- Use `uv` to make the dep install faster and more invisible
+
+This becomes less acute once `quill-mcp` is on PyPI — the plugin can
+call `pip install quill-mcp` as a one-time setup.
 
 ---
 
-## Blocks scaling
+## Blocks polish (nice but not blocking)
 
-### 6. Sync mechanism with the upstream `BRIDGES` repo
+### 4. Codex CLI / Claude CLI invocation flag drift
 
-The `server/` directory is currently a **flat copy** of the open-source
-BRIDGES code. Any improvement upstream needs to be re-copied here.
-Options:
+Quill's defaults for the CLI advisors:
+- `codex exec --skip-git-repo-check --sandbox read-only --output-last-message <tempfile>`
+- `claude -p`
 
-- Git submodule pointing at the upstream repo
-- Build script that copies + transforms (e.g., scrubs Elysia branding)
-- Symlink (won't survive plugin install — Anthropic copies the dir)
-- Vendor permanently and let the two diverge
+These match Codex CLI 0.130 and Claude Code CLI 2.1.141 as of test
+date. Future CLI versions may rename or remove flags. We'd want either:
+- Pin minimum CLI versions in docs
+- Detect at startup and warn on incompatibility
+- Provide a `CODEX_ARGS` / `CLAUDE_ARGS` override (already partially in
+  place via `CODEX_BIN` wrapper script pattern)
 
-Symlink is the dev-time convenience but plugin install cache breaks
-it. Build script is probably right for v1.
+### 5. Branding scrub in the server code
 
-### 7. Branding scrub in the server code
+`bridge_server.py` and the prompts have hard-coded references to
+"Elysia" (the YG3 model used as the API default) and "Merlin"
+(gatekeeper model). Now that Quill is generic and supports multiple
+backends, those names leak into log lines (`"[Elysia replied]"`),
+prompt text (`"the bridge passes that to Elysia for a reframing"`), and
+SKILL.md content.
 
-`bridge_server.py` has hard-coded references to "Elysia" and "Merlin"
-as model names and persona references. For the commercial product:
+The YG3 brand still wants Elysia visible (they're the recommended API
+pairing), but the language should accommodate "Quill's advisor" or
+"the configured advisor" as the generic case.
 
-- Are these still the model names? (Maybe — your company may want to
-  ship its own AI endpoint, in which case you'd rename)
-- The default system prompts reference "Elysia" by name — those need
-  rewriting if the brand is different
-- Logging messages like `"[Elysia replied]"` need updating
+### 6. Welcome message in the MCP server
 
-This is a search-and-replace job once the brand is decided.
+`bridge_server.py` has the `~/.quill/.welcomed` sentinel + `welcome`
+field in `/consult` responses + SKILL.md handling for surfacing it.
+`mcp_server.py` doesn't currently have an equivalent. MCP users miss
+the donation prompt entirely.
 
-### 8. Update mechanism for the marketplace
+Plan: port the same sentinel logic into the MCP server, prepend the
+welcome to the first tool response of each fresh install.
 
-Plugins update via `git pull` of the marketplace repo. For a private
-marketplace, the customer needs to be granted access to the repo
-(SSH key, Personal Access Token, etc.). Two patterns:
+### 7. Sessions persistence / multi-turn memory across MCP calls
 
-- Customer clones with their account (you grant them repo access)
-- Customer adds a tarball URL (your CDN serves the latest), no git auth
+The bridge server has session memory used by the planning advisor. The
+MCP server's tools are stateless — each `quill_consult` call is fresh.
+For some research questions (longitudinal study of advisor responses
+to evolving framings), session continuity would be useful.
 
-Tarball is simpler for non-technical customers. Git is simpler for
-operations.
+Add a `session_id: str | None` parameter to MCP tools, route through
+the existing `sessions` store.
+
+### 8. Telemetry / research data collection (opt-in)
+
+For the research direction we need data. Per the research plan:
+
+- Anonymized framings + responses across backends, with opt-in consent
+- Privacy posture: what data leaves the machine, retention period,
+  publication terms
+- A clear `QUILL_TELEMETRY=1` opt-in env var (default off)
+- Wire to a Yugen-hosted endpoint or a S3 bucket
+
+Don't build until we have a research design ready to use it. See
+[RESEARCH.md](RESEARCH.md).
 
 ---
 
-## Nice-to-have
+## Settled (no further decision needed)
 
-### 9. A non-monitor startup story
+These were open questions that the 2026-05-15 strategic direction
+resolved:
 
-If monitors are flaky or noisy, alternatives:
-- A `bin/quill-start` script + readme instruction "run this once"
-- An OS-level launchd/systemd service installed by `bin/quill-install`
-- Background it via `nohup` from a one-shot setup script
-
-### 10. Telemetry / analytics
-
-For a paid product you probably want to know:
-- How many active installs
-- Which slash commands are used most
-- Latency / failure rates
-- Churn signals (plugin disabled)
-
-The bridge already logs locally; central reporting needs a privacy
-posture decision (opt-in? opt-out? what data leaves the machine?).
-
-### 11. Per-customer customization
-
-Some customers may want to:
-- Customize the system prompts (already supported via env vars)
-- Use their own AI endpoint (already supported via `AI_BASE_URL`)
-- Restrict which slash commands are available (toggles already exist)
-
-The plumbing is there; whether to expose it as a UI or settings file
-is a packaging decision.
+- **Product name** — `quill` plugin, `yg3` marketplace, `Quill` brand,
+  Yugen LLC owner, `help@yg3.ai` contact (resolved 2026-05-09)
+- **License key validation** — N/A, free open source, no gating
+- **API key onboarding** — `.env` with documented options; CLI backends
+  need no API key
+- **Update mechanism** — PyPI for MCP, plugin marketplace for the
+  Claude Code plugin
+- **Sync with upstream BRIDGES** — both MIT now, informal manual
+  cherry-picking
+- **Distribution / source hiding** — open source MIT, no Cython, source
+  visible
+- **Per-customer customization** — env-overridable system prompts +
+  AI_BASE_URL already supports the customization that matters

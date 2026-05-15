@@ -1,10 +1,16 @@
 # Quill — a thinking partner between two coding agents
 
+**Free, MIT-licensed open source. A working product *and* an active
+research project on coding-agent collaboration.**
+
 Quill mediates dialogue between the AI doing the work and a second AI
 giving perspective. The headline: **if you have a Claude Pro and a Codex
 Pro subscription, you have a free dual-AI coding setup.** No API key
 required, no per-token cost — Quill shells out to whichever CLIs you have
 installed and relays their conversation.
+
+Built by [Yugen LLC](https://yg3.ai). See
+[RESEARCH.md](RESEARCH.md) for the research direction.
 
 Three thinking-partner skills available in any agentic CLI Quill is
 installed in:
@@ -90,14 +96,31 @@ OpenRouter, Ollama, Together, OpenAI direct, etc.
 
 ## Free, with a tip jar
 
-Quill is free. We built it because the team uses it daily and wanted
-others to have it too.
+Quill is free and MIT-licensed. We built it because the team uses it
+daily and wanted others to have it too. Open source means you can read
+what it does, fork it, contribute, or just inspect it before you wire
+it into your workflow.
 
 If Quill earns its keep in your workflow, you can leave a tip:
 
 → **[Support Quill ($5 suggested, name your price)](https://buy.stripe.com/5kQfZh5V30oabyO6ncb7y0i)**
 
-100% of donations go to Yugen LLC and fund continued development.
+100% of donations go to Yugen LLC and fund continued development +
+the research direction below.
+
+## Research direction
+
+Quill is also a research instrument. The same framing through different
+advisor backends produces measurably different responses (Codex tends to
+cite specific files; Claude tends to reframe humanistically). That's a
+publishable observation, and a real research program is reachable from
+where this codebase already sits — voice differential studies,
+dual-agent benefit benchmarks, advisor-doer pairing matrices.
+
+See [RESEARCH.md](RESEARCH.md) for the open questions and how to
+contribute. Planned HuggingFace presence: dataset of agent dialogues,
+interactive Spaces demo, eventually a small fine-tuned model trained
+specifically as a thinking-partner advisor.
 
 ## Repo shape
 
@@ -122,17 +145,21 @@ BRIDGES-Plugin/
 │           ├── prompts.py                ← shared system prompts
 │           ├── checks.py                 ← deterministic push scans
 │           └── .env.example
-├── LICENSE                               ← proprietary
+├── LICENSE                               ← MIT
+├── USER_GUIDE.md                         ← customer-facing manual
+├── ARCHITECTURE.md                       ← internal docs
+├── RESEARCH.md                           ← research direction
 ├── OPEN_QUESTIONS.md                     ← what's not yet shipped
 └── README.md
 ```
 
 ## Status
 
-**v0.2 scaffold.** The architecture is in place — advisor abstraction,
-both API and CLI backends, both FastAPI and MCP entry points. Several
-real things still need verification before this is rock-solid for
-non-technical users. See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+**v0.2 — works end-to-end, not yet on PyPI.** Both advisor backends
+(Codex CLI, Claude CLI) and the API backend are validated through
+both the FastAPI bridge (Claude Code plugin) and the MCP server (Codex
+CLI / Cursor / Cline / Continue). Real install paths still need polish
+for non-technical users — see [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 
 ## Trying it locally
 
@@ -148,19 +175,31 @@ test the welcome flow again after a fresh install, delete
 
 ## What's NOT done yet
 
-- Verified monitor auto-start across Claude Code restarts
-- Python dependency install story for non-technical users
-- Codex CLI / Claude CLI invocation flag verification on real machines
-  (defaults are reasonable but the user may need to override the binary
-  path or `args` if their CLI version differs)
-- Update mechanism (git pull vs tarball CDN)
+- PyPI publication of `quill-mcp` (the install path for non-technical
+  users — currently requires `git clone` + `pip install -r requirements.txt`)
+- Verified monitor auto-start across Claude Code restarts on a fresh
+  customer machine
+- Codex CLI / Claude CLI invocation flag verification across CLI
+  versions (defaults work today; may shift across releases)
+- HuggingFace dataset + Spaces (planned, see RESEARCH.md)
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list.
 
+## License
+
+[MIT](LICENSE). Copyright (c) 2026 Yugen LLC.
+
 ## Relationship to the open-source BRIDGES repo
 
-The `server/` core started life as a copy of the open-source BRIDGES
-project at `../BRIDGES`. The two have diverged: this codebase has the
-advisor abstraction, the MCP server, the welcome message, and the donation
-plumbing; BRIDGES upstream remains a Claude-Code-only FastAPI bridge.
-Sync strategy still TBD — see OPEN_QUESTIONS.
+Quill's server core started as a copy of the local BRIDGES experimental
+codebase at `../BRIDGES`. The two have diverged substantially: this
+codebase has the advisor abstraction, MCP server, CLI advisor backends,
+welcome/donation surfacing, and the research framing. Both are now
+MIT-licensed; sync strategy is informal (manual port of useful changes
+in either direction).
+
+## Contributing
+
+Issues, pull requests, and research observations welcome. If you're a
+researcher interested in coding agent collaboration, see
+[RESEARCH.md](RESEARCH.md) for the open questions and how to contribute.
