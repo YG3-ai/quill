@@ -10,13 +10,17 @@ as the doer, configure Quill with ADVISOR_BACKEND=claude_cli (or vice versa),
 and get a thinking-partner dialogue between two coding agents that bills
 against the developer's existing Pro subscriptions instead of an API key.
 
-Run directly:
+Run as the installed console script:
 
-    python3 mcp_server.py
+    quill-mcp
 
-Or wire into an MCP-aware client's config under whatever name it expects
-(e.g. for Codex CLI: see ~/.codex/config.toml; for Cursor: see Settings →
-Features → MCP Servers).
+Or directly:
+
+    python3 -m quill_mcp.server
+
+Wire into an MCP-aware client's config under whatever name it expects
+(e.g. for Codex CLI: `codex mcp add quill -- quill-mcp`; for Cursor:
+Settings → Features → MCP Servers).
 """
 
 from __future__ import annotations
@@ -39,8 +43,8 @@ log = logging.getLogger("quill-mcp")
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
-from advisors import build_advisor  # noqa: E402
-from prompts import (  # noqa: E402
+from .advisors import build_advisor  # noqa: E402
+from .prompts import (  # noqa: E402
     consult_prompt,
     perspective_prompt,
     assumptions_prompt,
@@ -100,5 +104,10 @@ async def quill_assumptions(framing: str) -> str:
     return await _ask(assumptions_prompt(), framing)
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """Console-script entry point. `quill-mcp` runs this."""
     mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    run()

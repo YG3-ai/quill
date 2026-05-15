@@ -48,46 +48,50 @@ In MCP-aware agents: tool names are `quill_consult`, `quill_perspective`,
 
 ## Install
 
+### As an MCP server (recommended; for Codex CLI / Cursor / Cline / Continue / etc.)
+
+Install via PyPI:
+
+```bash
+pip install quill-mcp
+```
+
+`quill-mcp` is now a runnable command on your `$PATH`. Wire it into
+your agent's MCP config. For Codex CLI:
+
+```bash
+codex mcp add quill --env ADVISOR_BACKEND=claude_cli -- quill-mcp
+```
+
+Replace `claude_cli` with whichever backend you want (see "Configure"
+below). For Cursor / Cline / Continue / etc., consult the agent's MCP
+docs — the `command` is `quill-mcp`, `env` carries `ADVISOR_BACKEND`.
+
+> Want the bleeding-edge dev version instead?
+> `pip install git+https://github.com/YG3-ai/quill`.
+
 ### As a Claude Code plugin
 
-In Claude Code:
+The plugin is a convenience wrapper that exposes the three skills as
+slash commands and adds Claude-Code-specific extras (safety hooks,
+pre-push quality scans).
+
+```bash
+pip install "quill-mcp[plugin]"   # core + FastAPI bridge deps
+```
+
+Then in Claude Code:
 
 ```
 /plugin marketplace add YG3-ai/quill
 /plugin install quill@yg3
 ```
 
-The plugin's monitor entry auto-starts the FastAPI bridge server. Slash
-commands appear immediately.
-
-You also get safety hooks (gatekeeper for risky shell commands) and
-pre-push quality scans (secrets, debug statements, TODOs, .env files) —
-these are Claude-Code-specific extras on top of the three skills.
-
-### As an MCP server (for Codex CLI / Cursor / Cline / Continue / etc.)
-
-For now, install from source. (PyPI package planned.)
-
-```bash
-git clone https://github.com/YG3-ai/quill ~/quill
-cd ~/quill/plugins/quill/server
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Then wire the MCP server into your agent's config. For Codex CLI:
-
-```bash
-codex mcp add quill \
-  --env ADVISOR_BACKEND=claude_cli \
-  -- ~/quill/plugins/quill/server/.venv/bin/python3 \
-     ~/quill/plugins/quill/server/mcp_server.py
-```
-
-Replace `claude_cli` with whichever backend you want (see "Configure"
-below). For Cursor / Cline / Continue / etc., consult the agent's MCP
-docs — the `command`/`args`/`env` shape is the same.
+The plugin's files land under `~/.claude/plugins/`; the exact path is
+shown after install. From there, `cd <plugin-install-path>/plugins/quill/server`,
+copy `.env.example` to `.env`, set `ADVISOR_BACKEND`, then restart
+Claude Code. The plugin's monitor entry should auto-start the FastAPI
+bridge.
 
 ---
 

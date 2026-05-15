@@ -12,30 +12,38 @@ in-progress decisions, see [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
 ## Shape
 
 ```
-BRIDGES-Plugin/                            ← marketplace repo
+quill/                                     ← repo root (also the marketplace)
+├── pyproject.toml                         ← `quill-mcp` PyPI package metadata
+├── src/quill_mcp/                         ← THE PYPI PACKAGE
+│   ├── __init__.py                        ← `__version__ = "0.1.0"`
+│   ├── server.py                          ← MCP entry, `quill-mcp` console script
+│   ├── prompts.py                         ← shared system prompts
+│   └── advisors/                          ← advisor backend abstraction
+│       ├── base.py                        ← Advisor interface
+│       ├── api_advisor.py                 ← OpenAI-compatible API
+│       ├── _cli_common.py                 ← shared CLI subprocess plumbing
+│       ├── codex_cli_advisor.py           ← shells out to `codex exec`
+│       ├── claude_cli_advisor.py          ← shells out to `claude -p`
+│       └── __init__.py                    ← registry, build_advisor()
 ├── .claude-plugin/marketplace.json        ← yg3 marketplace catalog
 └── plugins/quill/                         ← Claude Code plugin wrapper
     ├── .claude-plugin/plugin.json
     ├── skills/                            ← /quill:consult etc.
     ├── hooks/hooks.json                   ← Claude-Code-specific
     ├── monitors/monitors.json             ← auto-starts bridge_server.py
-    └── server/                            ← shared core
-        ├── bridge_server.py               ← FastAPI: Claude Code skills
-        ├── mcp_server.py                  ← MCP: Codex / Cursor / etc.
-        ├── prompts.py                     ← shared system prompts
-        ├── advisors/                      ← advisor backend abstraction
-        │   ├── base.py                    ← Advisor interface
-        │   ├── api_advisor.py             ← OpenAI-compatible API
-        │   ├── _cli_common.py             ← shared CLI subprocess plumbing
-        │   ├── codex_cli_advisor.py       ← shells out to `codex exec`
-        │   ├── claude_cli_advisor.py      ← shells out to `claude -p`
-        │   └── __init__.py                ← registry, build_advisor()
+    └── server/                            ← Claude-Code-specific bridge
+        ├── bridge_server.py               ← FastAPI: imports `quill_mcp.*`
         ├── checks.py                      ← deterministic push scans
+        ├── requirements.txt               ← single line: `quill-mcp[plugin]`
         └── .env.example
 ```
 
-The shared core under `server/` is what matters; `bridge_server.py` and
-`mcp_server.py` are both thin entry points that share advisors + prompts.
+The PyPI package (`src/quill_mcp/`) is the asset everything builds on.
+`bridge_server.py` is now a thin Claude-Code-specific HTTP wrapper that
+imports the same `quill_mcp.advisors` and `quill_mcp.prompts` the MCP
+server uses. The `[plugin]` extra in `pyproject.toml` carries
+fastapi / uvicorn / bleach / markdown — needed only by the bridge,
+not by the MCP server.
 
 ---
 
@@ -245,9 +253,9 @@ transport-specific glue is duplicated.
   thread for the trade-off analysis.
 - **One repo, two surfaces (plugin + MCP)** — the shared core (server,
   advisors, prompts) is the asset; splitting would mean
-  double-maintenance for ~no benefit. PyPI extraction will eventually
-  refactor `quill_core` out of `plugins/quill/server/` so the MCP package
-  can ship without the plugin scaffolding.
+  double-maintenance for ~no benefit. As of 2026-05-15 the core is
+  extracted to `src/quill_mcp/` (PyPI package), and the Claude Code
+  plugin's bridge depends on it.
 - **CLI advisors loosened relative to API advisors** — Elysia (small
   model) needs tight brevity prompts; Codex/Claude (frontier) benefit
   from being expansive and reading code. The `_cli_common.py` preamble

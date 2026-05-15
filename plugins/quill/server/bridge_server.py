@@ -23,8 +23,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 from dotenv import load_dotenv
 
 from checks import run_all_checks, format_findings, summarize_findings
-from advisors import Advisor, build_advisor
-from prompts import consult_prompt, perspective_prompt, assumptions_prompt
+from quill_mcp.advisors import Advisor, build_advisor
+from quill_mcp.prompts import consult_prompt, perspective_prompt, assumptions_prompt
 
 load_dotenv()
 

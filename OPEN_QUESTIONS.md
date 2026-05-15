@@ -11,28 +11,34 @@ For the research direction itself, see [RESEARCH.md](RESEARCH.md).
 
 ## Blocks shipping (real install-flow gaps)
 
-### 1. PyPI publication of `quill-mcp`
+### 1. PyPI publication — RESOLVED (2026-05-15)
 
-The MCP server install today requires `git clone` + venv + `pip install
--r requirements.txt`. That works for developers but is a UX cliff for
-the wider audience.
+`quill-mcp 0.1.0` published to PyPI. End-to-end verified through a
+TestPyPI dry-run first (clean wheel build, all 9 source files +
+LICENSE + entry points + metadata; fresh-venv install works; `quill-mcp`
+console script and module imports verified).
 
-**Plan:** publish `quill-mcp` to PyPI so the install becomes:
+The MCP install is now one command:
 
 ```bash
 pip install quill-mcp
 codex mcp add quill --env ADVISOR_BACKEND=claude_cli -- quill-mcp
 ```
 
-**Work:**
-- Add `pyproject.toml` with proper package metadata
-- Decide whether `quill-mcp` ships only the MCP-relevant files (mcp_server, advisors, prompts) or the whole server tree
-- Set up YG3 PyPI account
-- Wire a small release process (manual `python -m build && twine upload`
-  is fine for v0.1)
+The Claude Code plugin install is two commands plus the marketplace
+add:
 
-This is also the cleanest fix for #2 (Python deps install) for the MCP
-audience.
+```bash
+pip install "quill-mcp[plugin]"
+# then in Claude Code:
+#   /plugin marketplace add YG3-ai/quill
+#   /plugin install quill@yg3
+```
+
+Future releases: cut a new version in `pyproject.toml` + `__init__.py`,
+`rm -rf dist/`, `python -m build`, `twine upload dist/*`. Eventually
+move to GitHub Actions trusted-publisher flow so tag-push triggers
+the release automatically.
 
 ### 2. Verify monitor auto-start across Claude Code restarts
 
@@ -50,22 +56,24 @@ verify on a fresh customer machine:
 If monitor auto-start is unreliable, fall back to a `quill-start` script
 + README instruction.
 
-### 3. Python dependencies install for the Claude Code plugin
+### 3. Python dependencies install for the Claude Code plugin — RESOLVED via PyPI extraction (2026-05-15)
 
-Even with PyPI for the MCP server, the Claude Code plugin's bridge_server
-needs FastAPI / uvicorn / bleach / markdown installed. Plugin install
-copies the directory but doesn't run `pip install`.
+The plugin's `requirements.txt` now contains a single line:
+`quill-mcp[plugin]>=0.1.0`. Customer install becomes:
 
-Options:
-- Bundle a `bin/setup` script the README instructs users to run once
-- Have the monitor command create a venv + install on first run (slow,
-  but invisible)
-- Ship the plugin assuming `quill-mcp` is already pip-installed (uses
-  its environment)
-- Use `uv` to make the dep install faster and more invisible
+```bash
+pip install "quill-mcp[plugin]"
+```
 
-This becomes less acute once `quill-mcp` is on PyPI — the plugin can
-call `pip install quill-mcp` as a one-time setup.
+…which pulls in the core MCP package + FastAPI / uvicorn / bleach /
+markdown via the `[plugin]` extra. After PyPI publication (#1) this
+collapses the plugin's setup story to a single `pip install`.
+
+What's still imperfect: the plugin install via Claude Code's
+marketplace doesn't trigger this `pip install` automatically. Users
+need to run it once manually. A future `bin/setup` script in the
+plugin could automate this, but it's not blocking — the README and
+USER_GUIDE document the step clearly.
 
 ---
 

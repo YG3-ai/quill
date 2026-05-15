@@ -66,39 +66,35 @@ You'll need:
 This is the recommended path. The MCP server works in any MCP-aware
 agent and is the primary surface Quill is built around.
 
-1. **Clone + install:**
+1. **Install:**
 
    ```bash
-   git clone https://github.com/YG3-ai/quill ~/quill
-   cd ~/quill/plugins/quill/server
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   cp .env.example .env
-   # then edit .env to set ADVISOR_BACKEND (see below)
+   pip install quill-mcp
    ```
+
+   That's it — `quill-mcp` is now a runnable command on your `$PATH`.
 
 2. **Wire into your agent's MCP config.**
 
    For **Codex CLI**:
 
    ```bash
-   codex mcp add quill \
-     --env ADVISOR_BACKEND=claude_cli \
-     -- ~/quill/plugins/quill/server/.venv/bin/python3 \
-        ~/quill/plugins/quill/server/mcp_server.py
+   codex mcp add quill --env ADVISOR_BACKEND=claude_cli -- quill-mcp
    ```
 
    For **Cursor / Cline / Continue / other MCP-aware agents**, consult
-   the agent's MCP docs. The `command` + `args` + `env` shape is the
-   same — point at the venv's `python3` and `mcp_server.py`, set
-   `ADVISOR_BACKEND` via env.
+   the agent's MCP docs. The `command` is just `quill-mcp` (no args
+   needed), with `ADVISOR_BACKEND` set in the env.
 
 3. Tools available: `quill_consult`, `quill_perspective`,
    `quill_assumptions`. (Note: in Codex CLI's non-interactive `exec`
    mode you'll need `--dangerously-bypass-approvals-and-sandbox` to
    call MCP tools without a human approving each call. Interactive
    mode just prompts for approval.)
+
+> Want the latest dev version? `pip install
+> git+https://github.com/YG3-ai/quill`. For local-clone development,
+> see [Local development](#local-development-for-contributors) below.
 
 ### Path 2 — Claude Code plugin
 
@@ -107,33 +103,39 @@ that exposes the three thinking-partner skills as slash commands and
 adds Claude-Code-specific extras (safety gatekeeper on Bash/Edit/Write,
 pre-push quality scans).
 
-1. **Install the plugin** (inside Claude Code):
+1. **Install the core package + plugin extras:**
+
+   ```bash
+   pip install "quill-mcp[plugin]"
+   ```
+
+   The `[plugin]` extra adds FastAPI / uvicorn / bleach / markdown,
+   which the Claude Code bridge server needs.
+
+2. **Install the plugin** (inside Claude Code):
 
    ```
    /plugin marketplace add YG3-ai/quill
    /plugin install quill@yg3
    ```
 
-2. **Set up the Python server** (one-time, from a terminal):
+3. **Configure** (one-time, from a terminal):
 
-   The plugin install copies files but doesn't install Python deps.
    The plugin's files land somewhere under `~/.claude/plugins/`; the
-   exact path is shown after install.
+   exact path is shown after install. Copy the `.env.example` to
+   `.env` and set `ADVISOR_BACKEND`:
 
    ```bash
    cd <plugin-install-path>/plugins/quill/server
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
    cp .env.example .env
    # then edit .env to set ADVISOR_BACKEND (see below)
    ```
 
-3. **Restart Claude Code.** The plugin's monitor entry should fire and
+4. **Restart Claude Code.** The plugin's monitor entry should fire and
    start the FastAPI server in the background. If it doesn't — see
    [Troubleshooting](#troubleshooting).
 
-4. The three skills become `/quill:consult`, `/quill:perspective`,
+5. The three skills become `/quill:consult`, `/quill:perspective`,
    `/quill:assumptions`.
 
 ## Configuring the advisor backend
@@ -216,26 +218,34 @@ specifically as a thinking-partner advisor.
 ## Repo shape
 
 ```
-BRIDGES-Plugin/
+quill/
+├── pyproject.toml                        ← quill-mcp PyPI package metadata
+├── src/
+│   └── quill_mcp/                        ← THE PACKAGE (what `pip install quill-mcp` ships)
+│       ├── __init__.py
+│       ├── server.py                     ← MCP entry (`quill-mcp` console script)
+│       ├── prompts.py                    ← shared system prompts
+│       └── advisors/                     ← advisor backends
+│           ├── base.py
+│           ├── api_advisor.py            ← OpenAI-compatible API
+│           ├── codex_cli_advisor.py      ← shells out to `codex exec`
+│           ├── claude_cli_advisor.py     ← shells out to `claude -p`
+│           └── _cli_common.py            ← shared subprocess plumbing
 ├── .claude-plugin/
 │   └── marketplace.json                  ← yg3 marketplace catalog
 ├── plugins/
-│   └── quill/                            ← Claude Code plugin wrapper
+│   └── quill/                            ← Claude Code plugin (depends on quill-mcp)
 │       ├── .claude-plugin/plugin.json
 │       ├── skills/                       ← /quill:consult etc.
 │       ├── hooks/hooks.json              ← gatekeeper, push checks
 │       ├── monitors/monitors.json        ← auto-starts the FastAPI server
-│       └── server/                       ← shared core (used by both
-│           │                               the plugin AND the MCP server)
-│           ├── bridge_server.py          ← FastAPI for Claude Code skills
-│           ├── mcp_server.py             ← MCP entry for non-Claude-Code
-│           ├── advisors/                 ← advisor backends
-│           │   ├── api_advisor.py        ← OpenAI-compatible API
-│           │   ├── codex_cli_advisor.py  ← shells out to `codex exec`
-│           │   └── claude_cli_advisor.py ← shells out to `claude -p`
-│           ├── prompts.py                ← shared system prompts
+│       └── server/                       ← Claude-Code-specific bridge
+│           ├── bridge_server.py          ← FastAPI bridge (imports quill_mcp.*)
 │           ├── checks.py                 ← deterministic push scans
+│           ├── requirements.txt          ← `quill-mcp[plugin]` (one dep)
 │           └── .env.example
+├── research/                             ← research spikes + findings
+├── imgs/                                 ← brand assets (logo, banners)
 ├── LICENSE                               ← MIT
 ├── USER_GUIDE.md                         ← customer-facing manual
 ├── ARCHITECTURE.md                       ← internal docs
@@ -246,24 +256,38 @@ BRIDGES-Plugin/
 
 ## Status
 
-**v0.2 — works end-to-end, not yet on PyPI.** Both advisor backends
+**v0.1.0 — first PyPI release.** `pip install quill-mcp` installs the
+core thinking-partner MCP server. `pip install "quill-mcp[plugin]"`
+adds the Claude Code FastAPI bridge extras. Both advisor backends
 (Codex CLI, Claude CLI) and the API backend are validated through
-both the FastAPI bridge (Claude Code plugin) and the MCP server (Codex
-CLI / Cursor / Cline / Continue). Real install paths still need polish
-for non-technical users — see [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md).
+both surfaces (FastAPI bridge for Claude Code; MCP server for Codex
+CLI / Cursor / Cline / Continue / etc.). See
+[OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for what's next.
 
 ## Local development (for contributors)
 
-To work on Quill itself, run the server directly from your clone:
+To work on Quill itself, install editable from your clone:
 
 ```bash
 git clone https://github.com/YG3-ai/quill
-cd quill/plugins/quill/server
+cd quill
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[plugin]"   # editable install, both core + plugin extras
+```
+
+Then to run the MCP server (from any directory):
+
+```bash
+ADVISOR_BACKEND=codex_cli quill-mcp
+```
+
+Or to run the Claude Code FastAPI bridge:
+
+```bash
+cd plugins/quill/server
 cp .env.example .env  # set ADVISOR_BACKEND
-ADVISOR_BACKEND=codex_cli python3 bridge_server.py
+ADVISOR_BACKEND=codex_cli python bridge_server.py
 ```
 
 To install the plugin from a local clone instead of from the GitHub
@@ -279,13 +303,13 @@ test the welcome flow again on a dev machine: `rm ~/.quill/.welcomed`.
 
 ## What's NOT done yet
 
-- PyPI publication of `quill-mcp` (the install path for non-technical
-  users — currently requires `git clone` + `pip install -r requirements.txt`)
 - Verified monitor auto-start across Claude Code restarts on a fresh
   customer machine
 - Codex CLI / Claude CLI invocation flag verification across CLI
   versions (defaults work today; may shift across releases)
 - HuggingFace dataset + Spaces (planned, see RESEARCH.md)
+- Trusted-publisher GitHub Actions release flow (so future versions
+  cut on tag push, no API tokens to manage)
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full list.
 
