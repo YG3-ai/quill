@@ -125,8 +125,15 @@ class BaseCLIAdvisor(Advisor):
 
         try:
             try:
+                # stdin=DEVNULL is load-bearing: when Quill MCP is itself a
+                # subprocess of an agentic CLI (e.g. `claude -p` registering
+                # us as an MCP server), our stdin is the JSON-RPC pipe from
+                # that parent. Without DEVNULL here, child CLI advisors like
+                # `codex exec` inherit that pipe and hang waiting for sensible
+                # input. Diagnosed during research/spike-002 (2026-05-15).
                 proc = await asyncio.create_subprocess_exec(
                     *cmd,
+                    stdin=asyncio.subprocess.DEVNULL,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )

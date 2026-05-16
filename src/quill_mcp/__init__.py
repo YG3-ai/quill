@@ -14,4 +14,4 @@ Public surface:
 See https://github.com/YG3-ai/quill for docs and the research direction.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
