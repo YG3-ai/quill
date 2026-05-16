@@ -1,0 +1,38 @@
+## Data model
+
+```
+Comment
+  id            uuid (pk)
+  post_id       uuid (fk → posts, indexed)
+  parent_id     uuid (fk → comments, nullable)   # single-level reply, or threaded
+  author_name   text
+  author_email  text                              # stored, never returned
+  body          text
+  status        enum('pending','approved','rejected','spam')
+  created_at    timestamptz
+  ip            inet                              # for rate-limit + spam signals
+```
+
+Index on `(post_id, status, created_at)` to serve the public listing cheaply.
+
+## REST API
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/posts/{post_id}/comments` | Returns `status='approved'` only. Paginated. |
+| `POST` | `/posts/{post_id}/comments` | Public. Creates with `status='pending'`. Returns 202. |
+| `GET` | `/admin/comments?status=pending` | Auth required. Moderation queue. |
+| `PATCH` | `/admin/comments/{id}` | `{ "status": "approved" \| "rejected" \| "spam" }` |
+| `DELETE` | `/admin/comments/{id}` | Hard delete (or soft if you want audit). |
+
+Public `POST` payload: `{ post_id, parent_id?, author_name, author_email, body }`. Reject if body > N chars or contains > M links.
+
+## Moderation
+
+Keep it boring:
+1. **Default to `pending`** — nothing public until a moderator approves.
+2. **Auto-flag** on signals: >2 links, known-bad email/IP, body matches blocklist regex → still `pending` but sorted to top of queue.
+3. **Rate limit** by IP: e.g. 5 comments / 10 min.
+4. **Trust-on-second-approval**: once an `author_email` has 2 approved comments, auto-approve future ones from that email (still rate-limited). This is the single biggest moderator-effort reducer.
+
+That's it — one table, six endpoints, four moderation rules. Add Akismet or a captcha later only if spam volume justifies it.

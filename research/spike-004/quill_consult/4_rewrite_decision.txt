@@ -1,0 +1,20 @@
+No, I would not rewrite the 50k-line Python monolith in Rust as a default plan.
+
+With 4 engineers, limited Rust production experience, only occasional performance pain, and 12 months of runway, a full rewrite is a high-risk bet. You would be spending a large fraction of company survival time rebuilding known behavior in a language the team has not yet shipped at scale. The likely failure mode is not “Rust is bad”; it is that the rewrite absorbs product velocity, creates two systems to maintain, misses edge cases from the Python app, and still leaves you with organizational pressure before the new system is fully proven.
+
+But I would not dismiss the question as just a performance idea. Usually, “should we rewrite?” means the team feels trapped by the current codebase. Before deciding, ask:
+
+- What specific parts of the Python monolith make development painful?
+- Are performance incidents tied to a few hot paths, or is the whole architecture limiting you?
+- What features or fixes are slowed down by the current design?
+- Would the team still want Rust if performance were solved inside Python?
+
+A better path:
+
+1. Profile the real bottlenecks.
+2. Fix the worst Python issues first: database queries, caching, async boundaries, job queues, data model problems, module boundaries.
+3. Create one small Rust carve-out only if there is a clear, measurable fit: CPU-heavy processing, parsing, compression, cryptography, high-throughput networking, etc.
+4. Treat that Rust project as a learning and validation exercise, not the start of a guaranteed rewrite.
+5. Reassess after it ships: did it improve reliability, performance, and team confidence enough to justify more?
+
+So the answer is: don’t rewrite the monolith wholesale. Use the Rust interest productively by carving out one bounded, high-value component where Rust’s strengths matter. Meanwhile, invest in making the Python system less painful to work in. That gives the team movement without betting the runway on a rewrite.

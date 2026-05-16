@@ -1,0 +1,23 @@
+Start by asking what decisions users actually need to make.
+
+A settings page with 12 toggles is often overwhelming because every option looks equally important. I’d restructure it around intent:
+
+1. **Group related toggles**
+   Use clear sections like `Notifications`, `Privacy`, `Display`, `Advanced`, etc. Don’t show 12 unrelated switches in one flat list.
+
+2. **Set strong defaults**
+   If most users should leave something alone, make the default good and avoid forcing them to think about it.
+
+3. **Prioritize common controls**
+   Put the 3-5 settings users most often change at the top. Move rare or risky options into an `Advanced` section.
+
+4. **Use plain-language labels**
+   Avoid technical labels like “Enable async sync.” Use outcome-based copy like “Sync changes in the background.”
+
+5. **Explain consequences only where needed**
+   Short helper text is useful for ambiguous or high-impact toggles, but don’t add paragraphs under every switch.
+
+6. **Consider presets**
+   If the toggles often form common combinations, offer modes like `Recommended`, `Strict privacy`, or `Minimal notifications`, then let users customize.
+
+The goal is not necessarily to reduce the number from 12. The goal is to reduce the number of decisions users feel they must understand at once.

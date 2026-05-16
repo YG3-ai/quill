@@ -1,0 +1,11 @@
+Dual-agent coding setups are interesting because they separate momentum from judgment.
+
+A single coding agent is good at pushing forward: edit the file, run the test, chase the error, patch the next thing. That is useful, but it also creates tunnel vision. Once the agent is in motion, every decision starts looking like part of the current path.
+
+The advisor agent is valuable precisely because it is outside that motion. It can ask the annoying senior-engineer questions: Why this abstraction? What assumption just became load-bearing? Are we fixing the bug or decorating it? Did the test prove behavior, or just mirror the implementation?
+
+That split maps to a real tension developers already carry. When you code, you are both the person making the change and the person doubting the change. That is cognitively expensive. Pair programming works partly because it gives one of those jobs to another mind. Dual-agent setups do a weird, useful version of the same thing.
+
+The point is not “two AIs are twice as smart.” Often they are not. The point is role separation. One agent keeps the work moving. The other protects the work from its own momentum.
+
+That is a more interesting primitive than autocomplete.

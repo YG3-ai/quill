@@ -1,0 +1,34 @@
+Here's how I'd approach the decomposition. A few clarifying notes before the recommendation: I'm answering generically since I don't have your code in front of me — if you share the function, I can tailor this to the actual seams.
+
+## Proposed split
+
+Three units, separated by **side-effect type** and **trust boundary**:
+
+1. **`registerUser(input)`** — validates input, creates the user row in an `unverified` state, returns the user. Pure-ish: one DB write, no email, no secrets-at-rest beyond the row itself.
+2. **`sendVerificationEmail(userId)`** — generates a verification token, persists it (hashed, with expiry), dispatches the email. Idempotent on re-send; rate-limited.
+3. **`completePasswordSetup(token, password)`** — consumes the token, validates the password, writes the hash, marks the user verified. One transaction.
+
+The seam between 2 and 3 is the important one: a token in the user's inbox. Everything before that seam runs synchronously on signup; everything after runs on a later request triggered by the email link.
+
+## Ordering of changes
+
+Refactor in this order — each step is independently shippable and reversible:
+
+1. **Characterize first.** Write end-to-end tests against the existing monolith covering: happy path, duplicate email, expired token, token reuse, password-too-weak, email-send-failure. Don't refactor until these are green. This is your safety net.
+2. **Extract `sendVerificationEmail` first** (the middle piece). It's the easiest to pull out cleanly because it already has a natural input (the user) and output (email dispatched). The original function calls the new helper — behavior unchanged.
+3. **Extract `completePasswordSetup`.** This one probably already lives on a different HTTP route (the link target), so extraction is mostly a rename + moving logic out of a controller.
+4. **Shrink `registerUser` to just user creation** + a call to `sendVerificationEmail`. Now the original monolith is a thin shell.
+5. **Decide whether email send should be inline or queued.** Queueing decouples signup latency from SMTP availability but introduces "user exists but no email sent yet" — handle on the resend path.
+
+## What can go wrong
+
+- **Transactional boundaries.** If "create user" and "send email" are in one DB transaction, the email may send and then the transaction roll back — user clicks the link, no account exists. Send email *after* commit, and make resend safe.
+- **Token handling regressions.** Easy to introduce: storing the raw token instead of a hash, missing expiry check, allowing reuse, not invalidating on password set. Each deserves an explicit test before you touch the code.
+- **Enumeration leaks.** When you split, the "email already registered" branch tends to surface different error messages or timing across the new functions. Keep responses uniform.
+- **Partial state on failure.** A user in `unverified` state with no valid token (email send failed) is a real state now — make sure your resend endpoint can recover it, and that login rejects unverified users with a clear path forward.
+- **Replay / double-submit on password setup.** If the user clicks the link twice or refreshes the form, the second call should be a no-op, not an error.
+- **Rate limiting moves.** Whatever throttling existed on the monolith endpoint now needs to be reapplied to each new entry point — especially resend and password-setup.
+
+The biggest single risk is #1 (transaction + email). If you only get one thing right, get the commit-then-send ordering right.
+
+Want me to look at the actual function and turn this into a concrete step-by-step?

@@ -1,0 +1,130 @@
+A small commenting system should make a few choices explicit: flat vs threaded comments, auth vs anonymous posting, moderation lifecycle, and delete behavior. I’d keep it flat initially, allow logged-in users plus optional guest comments, and use soft deletion.
+
+**Data Model**
+
+```text
+posts
+- id
+- title
+- body
+- published_at
+
+users
+- id
+- display_name
+- email
+
+comments
+- id
+- post_id
+- user_id nullable
+- author_name nullable
+- author_email nullable
+- body
+- status enum: pending, approved, rejected, spam, deleted
+- ip_hash nullable
+- user_agent nullable
+- created_at
+- updated_at
+- approved_at nullable
+- approved_by nullable
+```
+
+Rules:
+
+- `post_id` is required.
+- Either `user_id` or guest `author_name` + `author_email` is required.
+- Public readers only see `status = approved`.
+- New comments start as `pending`, unless the author is trusted.
+- Deletes are soft deletes: set `status = deleted`.
+
+**REST API**
+
+Public:
+
+```http
+GET /posts/:postId/comments
+```
+
+Returns approved comments for a post.
+
+```http
+POST /posts/:postId/comments
+```
+
+Creates a comment.
+
+Example request:
+
+```json
+{
+  "body": "Good post.",
+  "authorName": "Sam",
+  "authorEmail": "sam@example.com"
+}
+```
+
+Example response:
+
+```json
+{
+  "id": "c_123",
+  "status": "pending"
+}
+```
+
+Admin/moderator only:
+
+```http
+GET /admin/comments?status=pending
+```
+
+List comments awaiting review.
+
+```http
+PATCH /admin/comments/:commentId
+```
+
+Update moderation status.
+
+Example:
+
+```json
+{
+  "status": "approved"
+}
+```
+
+```http
+DELETE /admin/comments/:commentId
+```
+
+Soft-delete a comment by setting `status = deleted`.
+
+Optional user endpoint if you allow edits:
+
+```http
+PATCH /comments/:commentId
+```
+
+Allow the original author to edit only while the comment is still `pending`, or within a short window such as 15 minutes.
+
+**Basic Moderation**
+
+Use the `status` field as the core moderation primitive:
+
+- `pending`: submitted but not visible yet
+- `approved`: visible publicly
+- `rejected`: reviewed and hidden
+- `spam`: hidden and useful for abuse tracking
+- `deleted`: removed from public/admin normal views unless explicitly included
+
+Small anti-abuse measures:
+
+- Rate limit by user ID or IP hash.
+- Add a honeypot field to catch simple bots.
+- Reject empty or extremely long bodies.
+- Normalize and sanitize rendered HTML, or store plain text only.
+- Log `ip_hash` and `user_agent` for abuse review without storing raw IPs forever.
+
+This keeps the system small: one main table, two public endpoints, a tiny admin API, and moderation handled through a clear lifecycle.

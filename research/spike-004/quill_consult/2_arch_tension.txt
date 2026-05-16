@@ -1,0 +1,20 @@
+I would not adopt full event sourcing for this user activity log right now.
+
+Your current problem sounds like: “We need a durable, queryable record of user activity that might later need stronger audit properties.” Event sourcing is a much bigger architectural commitment: immutable domain events as the source of truth, projections, replay semantics, versioned events, backfills, operational tooling, and debugging patterns your team has not practiced yet.
+
+For your constraints, I’d build an append-only activity log instead:
+
+- Store activity records immutably: no updates except maybe redaction/tombstone metadata if required.
+- Use a clear event schema: `event_type`, `actor_id`, `subject_id`, `occurred_at`, `request_id`, `source`, `metadata`, schema version.
+- Make writes simple and reliable: transactional outbox or direct append depending on the surrounding system.
+- Design for retention, partitioning, and replay/export, but do not make it the source of truth.
+- Add access controls and tamper-evidence if audit concerns become more concrete.
+- Keep derived views/indexes separate from the raw log.
+
+At 100k events/day, growing 20% quarter over quarter, the volume is not what pushes you into event sourcing. That is roughly 36.5M events/year today, increasing but still very manageable with ordinary database partitioning, object storage, or a log pipeline depending on query needs.
+
+The 18-month compliance possibility matters, but it does not automatically justify event sourcing. It justifies designing the log so you are not boxed in later. If compliance becomes real, you can harden the append-only log with retention policies, immutability controls, audit access trails, export guarantees, checksums, or WORM storage without having converted the whole activity system into event-sourced domain state.
+
+The one thing I would clarify before finalizing the decision: where did “possibly within 18 months” come from? If there is already a likely enterprise/customer/legal requirement forming, then treat this as an audit-log design problem now. If it is speculative, keep the architecture boring and reversible.
+
+Recommendation: build a disciplined append-only activity log now; defer event sourcing unless you later need domain-state reconstruction, temporal business logic, replay-driven workflows, or audit requirements so strong that the activity log must become the system of record.

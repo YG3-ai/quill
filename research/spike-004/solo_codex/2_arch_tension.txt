@@ -1,0 +1,21 @@
+Probably **not as the default choice right now**.
+
+For a user activity log at ~100k events/day, event sourcing is likely more operational and conceptual weight than you need, especially with a 6-person team and no prior experience. That volume is modest for a conventional append-only event table, log pipeline, or analytics store.
+
+I’d separate two ideas:
+
+1. **Append-only activity logging**
+   This is likely the right move. Store immutable activity records with stable event names, actor, target, timestamp, request/user context, metadata, and schema version. Avoid destructive updates. This gives you a good base for analytics, debugging, and future audit needs.
+
+2. **Full event sourcing**
+   This means your system state is derived from replaying events, with events as the primary source of truth. That introduces harder problems: event versioning, replay semantics, projections, backfills, idempotency, ordering, snapshots, operational tooling, and developer training. I would only adopt this if your domain genuinely benefits from reconstructing historical state or modeling business workflows as durable facts.
+
+Given your facts, I’d recommend:
+
+- Use a **normal append-only activity log** now.
+- Design it with audit-readiness in mind: immutable records, retention policy, schema versioning, actor/source metadata, tamper-evidence if needed later.
+- Keep it separate from core transactional state.
+- Consider Postgres, Kafka plus a sink, ClickHouse, BigQuery, or another analytics-friendly store depending on query patterns.
+- Revisit event sourcing only if future requirements demand state reconstruction, temporal queries over business objects, or strict auditability that activity logs cannot satisfy.
+
+The 18-month possible compliance need argues for **not painting yourself into a corner**, but it does not justify adopting event sourcing prematurely. Build an append-only event log with disciplined schemas; that preserves optionality without forcing the team into a new architecture before the requirement is real.

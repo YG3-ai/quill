@@ -1,0 +1,74 @@
+Split by responsibility and by transaction boundary. A good target shape is:
+
+1. `createSignupIntent`
+   Validates input, normalizes email, checks uniqueness/rate limits, creates the pending user or signup record.
+
+2. `sendVerificationEmail`
+   Generates a verification token, stores hashed token + expiry, sends the email, records delivery attempt.
+
+3. `verifyEmail`
+   Accepts token, validates expiry/single-use, marks email verified.
+
+4. `setInitialPassword`
+   Validates password policy, hashes password, stores credential, clears any setup token/state.
+
+5. `activateUser`
+   Finalizes account state once required conditions are met: verified email, password set, accepted terms, etc.
+
+I would avoid making email verification and password setup implicit side effects of signup. Model the signup as a state machine instead:
+
+```text
+pending_email_verification
+email_verified
+password_required
+active
+expired / cancelled
+```
+
+Or, if password can be set before email verification:
+
+```text
+pending_verification + password_set flags
+active only when both are true
+```
+
+**Ordering Of Changes**
+
+1. Add tests around the current behavior before changing structure.
+   Capture duplicate signup, invalid email, expired token, reused token, weak password, resend verification, and partial failure cases.
+
+2. Extract pure validation and normalization first.
+   This is low risk and makes later changes easier.
+
+3. Extract token generation/storage and email sending.
+   Keep the old public function calling the new helpers so behavior does not change yet.
+
+4. Introduce explicit signup/account states.
+   This is the most important design step. Avoid relying on scattered booleans unless the flow is truly simple.
+
+5. Split public endpoints or service methods.
+   For example:
+   - `POST /signup`
+   - `POST /signup/verify-email`
+   - `POST /signup/password`
+   - optional `POST /signup/resend-verification`
+
+6. Move activation behind one guarded function.
+   Every path should call the same `maybeActivateUser(userId)` or equivalent.
+
+7. Remove the old orchestration once callers are migrated.
+
+**What Could Go Wrong**
+
+- Partial account creation: user is created but email fails to send. Decide whether signup still exists and can resend verification.
+- Duplicate accounts: normalize email consistently and enforce a database uniqueness constraint.
+- Token leakage: store only hashed verification tokens, set expiries, and make tokens single-use.
+- Race conditions: two verification/password requests could activate or mutate the same user twice. Use transactions or idempotent updates.
+- Enumeration risk: signup and resend flows can reveal whether an email exists. Return generic responses where appropriate.
+- Broken migration: existing pending users may not fit the new states. Add a migration or compatibility handling.
+- Password set before verification: decide whether this is allowed. If yes, do not activate until email is verified.
+- Verification after expiry: provide a clear resend path instead of silently failing.
+- Email change edge cases: changing email should usually invalidate previous verification tokens.
+- Tests only covering the happy path: most bugs in this flow happen around retries, expired tokens, duplicate requests, and half-completed signups.
+
+The key design move is to stop thinking of signup as one action. It is a workflow with durable intermediate states. Once that state model is explicit, the decomposition becomes much easier and safer.

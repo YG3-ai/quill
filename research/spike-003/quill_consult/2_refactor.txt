@@ -1,0 +1,77 @@
+First ask: **what made you open this file today?** A bug, a security concern, a product change, or just accumulated fear of touching it should change the first move.
+
+That said, the decomposition I’d aim for is:
+
+```text
+signup orchestration
+├─ createUserAccount(input)
+├─ startEmailVerification(user)
+├─ initializePasswordSetup(user, passwordOrSetupToken)
+└─ emitSignupEvents / audit / analytics
+```
+
+Keep one top-level coordinator for the workflow, but move each responsibility behind a small interface or function. The goal is not to hide the flow; it’s to make each step independently testable and make failures explicit.
+
+**Proposed Split**
+
+1. `validateSignupRequest`
+   - Normalize email.
+   - Validate required fields.
+   - Enforce password policy if password is supplied immediately.
+   - Reject duplicate or blocked accounts.
+
+2. `createUserAccount`
+   - Create the user record.
+   - Set initial status, for example `pending_verification`.
+   - Avoid sending emails or setting passwords here.
+
+3. `startEmailVerification`
+   - Generate verification token.
+   - Persist token with expiry.
+   - Send verification email.
+   - Handle resend/idempotency behavior.
+
+4. `initializePasswordSetup`
+   - Either store the initial password securely or create a password setup token.
+   - Keep this separate from email verification unless the product requires verification first.
+
+5. `completeSignup`
+   - The orchestration layer.
+   - Calls the steps in order.
+   - Owns transaction boundaries, rollback/compensation, and return shape.
+
+**Ordering of Changes**
+
+1. Add characterization tests around the existing function first.
+   Cover successful signup, duplicate email, invalid password, email send failure, token generation, and partial failure behavior.
+
+2. Name the current phases inside the function without moving logic.
+   Add local blocks or private helper names so the shape becomes visible.
+
+3. Extract pure validation first.
+   This is usually low-risk and gives fast test coverage.
+
+4. Extract account creation next.
+   Keep the same database writes and return values.
+
+5. Extract verification token creation separately from email sending.
+   This matters because token persistence and email delivery have different failure modes.
+
+6. Extract password setup last.
+   This is often where security assumptions are hiding, so do it after the outer behavior is covered.
+
+7. Only after extraction, consider behavior changes.
+   For example: requiring email verification before password setup, changing token expiry, improving retry behavior, or adding audit events.
+
+**What Could Go Wrong**
+
+- **Partial account creation:** user gets created, email fails, and now they cannot retry cleanly.
+- **Duplicate accounts:** race conditions around email uniqueness if validation and insert are separate.
+- **Token confusion:** signup token, verification token, and password setup token get mixed or reused.
+- **Security regression:** password hashes, token entropy, expiry, single-use behavior, or verification ordering can accidentally weaken.
+- **Leaky errors:** responses may reveal whether an email already has an account.
+- **Broken idempotency:** retrying signup might create multiple tokens, emails, or inconsistent user states.
+- **Transaction mistakes:** sending email inside a DB transaction can cause weird behavior if the transaction rolls back after the email is sent.
+- **Analytics/audit loss:** old side effects may silently disappear during extraction.
+
+The safest first refactor is to keep the public function as the coordinator and extract internals one at a time. Don’t redesign the auth flow until you can prove you preserved the current one. Then make security/product changes deliberately, with tests that say exactly what changed.

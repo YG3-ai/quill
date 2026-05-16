@@ -1,0 +1,18 @@
+That depends on what you've already done — "what did we miss" only has a useful answer once I can see the integration. A few ways to point me at it:
+
+- Open the repo and tell me which service/PR is the integration (or just `cd` there)
+- Share the runbook / launch checklist if one exists
+- Name the provider (Stripe, Adyen, etc.) so I know which webhooks, idempotency, and compliance gotchas to check against
+
+Once I can see the code and the rollout plan, the usual T-minus-one-day sweep I'd run:
+
+- **Money correctness**: idempotency keys on every charge/refund path, currency + minor-unit handling, rounding, double-submit protection
+- **Webhooks**: signature verification, replay protection, retry/backoff, dead-letter, ordering assumptions
+- **Failure modes**: timeouts, partial failures, provider 5xx, what happens if our DB write succeeds but provider call fails (and vice versa)
+- **Secrets & config**: prod keys actually in prod (not test), rotated, scoped; PCI scope documented
+- **Observability**: dashboards for auth rate / decline reasons / latency, alerts wired to oncall, log redaction for PAN/CVV
+- **Rollout**: feature flag + kill switch, canary plan, rollback steps written down, who's on call at noon
+- **Reconciliation**: daily settlement vs. our ledger, dispute/chargeback intake
+- **Compliance**: PCI SAQ scope, data retention, audit log for money-moving actions
+
+Point me at the code and I'll turn this into a concrete punch list against what's actually there.

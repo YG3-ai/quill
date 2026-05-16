@@ -1,0 +1,9 @@
+Dual-agent coding setups are interesting because they split two jobs we keep pretending belong in one loop: execution and judgment.
+
+A “doing” agent is best when it has momentum. It can read files, make edits, run tests, chase compiler errors, and keep state across a messy implementation. But that same momentum is also the danger. Once it has a theory, it tends to protect it. It may overfit to the first path that works.
+
+An advising agent changes the shape of the work. It does not need to touch the code. Its job is to question the plan, spot missing constraints, suggest simpler designs, and call out risks before the doing agent burns an hour polishing the wrong abstraction. That separation is valuable because critique is cheaper when it is not entangled with ownership.
+
+The pattern feels less like “two AIs are smarter than one” and more like importing a lightweight code review into the middle of development. One agent keeps the diff moving. The other keeps asking whether the diff should exist in that form.
+
+For developers, the promise is not magic autonomy. It is better pressure on the loop: faster implementation, earlier objections, and fewer elegant mistakes shipped with confidence.

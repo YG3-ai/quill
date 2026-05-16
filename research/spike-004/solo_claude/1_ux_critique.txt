@@ -1,0 +1,3 @@
+Group the toggles into 2-3 sections by what they affect (e.g., notifications, privacy, appearance), and consider whether any can be removed entirely or moved behind an "Advanced" disclosure — most "overwhelming settings" complaints are really "I don't know which ones matter" complaints. Before redesigning, check usage data: toggles nobody touches should probably just pick a sensible default and disappear.
+
+The biggest win is often deletion, not reorganization — what do those 12 toggles actually do?

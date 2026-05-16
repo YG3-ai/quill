@@ -1,0 +1,30 @@
+Treat this less as a layout problem and more as a product decision problem.
+
+A settings page with 12 toggles often feels overwhelming because every option is presented as equally important. Start by auditing the toggles:
+
+1. **Remove toggles that should be product defaults**
+   Ask: “Do users genuinely need different behavior here, or did we add this because the team could not decide?”
+   If most users should use one behavior, make that the default and remove the toggle.
+
+2. **Group the remaining toggles by user goal**
+   Avoid a flat list. Use sections like:
+   - Notifications
+   - Privacy
+   - Display
+   - Automation
+   - Advanced
+
+3. **Make defaults opinionated**
+   Users should not feel like they must configure the product before it works well. Good defaults reduce anxiety.
+
+4. **Hide rarely used or risky options**
+   Put power-user controls under “Advanced” or behind contextual flows. Do not make every user scan settings they will never touch.
+
+5. **Rewrite labels around outcomes**
+   Bad: `Enable enhanced mode`
+   Better: `Automatically archive completed projects`
+
+6. **Prioritize the top 3-5 settings**
+   If only a few settings are commonly changed, visually promote those and demote the rest.
+
+A good target is not “12 toggles but prettier.” It is probably “5 visible decisions, strong defaults, and the rest either removed, grouped, or moved into advanced/contextual places.”

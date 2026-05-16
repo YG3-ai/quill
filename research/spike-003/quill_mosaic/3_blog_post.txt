@@ -1,0 +1,36 @@
+# Mosaic response
+
+**Task:** Write a 200-word post explaining why dual-agent coding setups (one AI doing, one AI advising) are interesting. Developer audience, opinionated voice.
+
+
+## hook_and_thesis *(voice: claude)*
+
+Here's the slice — a hook + thesis tuned for skeptical devs who've already seen "AI pair programming" pitches:
+
+---
+
+Two LLMs in a trench coat isn't the story. The interesting move is *asymmetry of stake*: one agent has its hands on the keyboard and the other doesn't. The doer is committed — it's editing files, running commands, accumulating sunk cost in an approach. The advisor walks in cold, reads the diff, and gets to ask "wait, why?" without the gravity of half-finished work pulling it toward "ship it." That gap is where the leverage lives.
+
+---
+
+That's ~75 words — slightly over your 40-word floor, but I'd argue the thesis needs the second sentence to actually land the "why this isn't just two LLMs" punch. If the downstream slices are tight, this still leaves room under 200 total. If you want a harder 40-word cut, drop the last sentence and the hook still stands on its own — though I think you lose the opinionated edge that the brief asked for.
+
+One flag for synthesis: the thesis I'm setting up ("asymmetry of stake → advisor can challenge sunk cost") is a *specific* claim. Whoever owns the middle slice should build on that frame rather than pivoting to a generic "two perspectives are better than one" argument, or the post will feel incoherent.
+
+## mechanism_argument *(voice: codex)*
+
+The mechanism is not “two models are smarter than one”; it is that they are forced into different jobs. The doer spends its context budget on local state: files, failing tests, command output, half-finished edits. The advisor can spend its budget on invariants, risk, and taste because it is not carrying the execution stack. That asymmetry matters. Coding agents often fail by overfitting to the next green check or by rationalizing their own patch; review agents fail differently, by being abstract or conservative. Put together, those failure modes can cross-check each other.
+
+This is basically pair programming with a sharper boundary: one cursor, one critic. It also resembles code review moved earlier in time, before the patch has hardened into sunk cost. The interesting part is structural, not magical: separate attention creates useful friction.
+
+## closing_provocation *(voice: claude)*
+
+Stop running one agent and hoping. The interesting AI workflows in 2027 won't be about better models — they'll be about better seating arrangements. Pair your doer with an adversary, not an assistant. If your setup can't disagree with itself, you're just autocompleting faster.
+
+
+---
+
+## Cross-review flags
+
+- **[med] narrative at hook_and_thesis+mechanism_argument/closing_provocation**: Slices 1 and 2 establish the second agent as an advisor/critic providing 'useful friction' — slice 1 says it 'gets to ask wait, why?', slice 2 calls it 'one cursor, one critic' and explicitly says the value is 'structural, not magical'. Slice 3 then closes with 'Pair your doer with an adversary, not an assistant' and 'If your setup can't disagree with itself, you're just autocompleting faster.' Adversary ≠ critic. The closing reads as a stronger claim than the body supports — a reader who bought the 'separate attention creates useful friction' frame will trip on 'adversary'. → *Either soften the closing to match (e.g. 'Pair your doer with a critic, not an assistant') or have the middle slice lean harder into adversarial framing (e.g. codex slice could say the critic should be tuned to disagree, not just observe). I'd lean toward softening — slice 2's 'useful friction' is the sharper, more defensible claim.*
+- **[low] narrative at hook_and_thesis/(self)**: Slice 1 includes ~150 words of editorial meta-commentary after the actual draft ('That's ~75 words...', 'One flag for synthesis...'). Not a cross-slice inconsistency per se, but if you paste slices verbatim the post will contain editor's notes. Slices 2 and 3 are clean prose only. → *Strip everything after the '---' in slice 1 when assembling. The thesis itself is the first paragraph only.*

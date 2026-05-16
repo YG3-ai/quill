@@ -1,0 +1,126 @@
+# Mosaic response
+
+**Task:** Design a simple commenting system for blog posts: data model, REST API, and basic moderation. Keep it small.
+
+
+## data_model_and_api *(voice: codex)*
+
+For the data model, keep `comments` flat with optional single-level threading: `id uuid pk`, `post_id uuid not null fk`, `parent_id uuid null fk comments.id`, `author_name varchar(80)`, `author_email varchar(254) null`, `user_id uuid null`, `body text`, `created_at timestamptz`, `updated_at timestamptz`, `status enum('pending','approved','rejected','spam')`, `moderated_at timestamptz null`, `moderated_by uuid null`. Index `(post_id, status, created_at)` and `(parent_id)`; enforce `parent_id` belongs to the same `post_id` if threading is enabled. Default status should be `pending` unless the author is a trusted role. State transitions: `pending -> approved|rejected|spam`; `approved -> rejected|spam`; `rejected -> approved|spam`; `spam -> rejected|approved` only for moderators. Public reads return approved comments only; moderator reads may filter any status.
+
+REST shape: `POST /posts/{id}/comments` creates a comment, auth optional unless the blog requires login, rate-limit by IP/user/post, validate `body` 1..5000 chars, `author_name` 1..80 for guests, `parent_id` exists and is approved, sanitize/escape at render boundary while storing raw normalized text. Return `201` with the created comment, usually `status: "pending"`. `GET /posts/{id}/comments?status=approved` returns `200` list; anonymous callers can only use `approved`, moderators can use `pending|approved|rejected|spam|all`. `PATCH /comments/{id}` is moderator-only and accepts `{ "status": "approved" }`, returning `200`; reject invalid transitions with `409`. `DELETE /comments/{id}` should be author-or-moderator; use soft delete or hard delete depending retention policy, returning `204`.
+
+Examples:
+
+```http
+POST /posts/7f3/comments
+{ "author_name": "Mina", "author_email": "mina@example.com", "body": "Useful post.", "parent_id": null }
+
+201 Created
+{ "id": "c42", "post_id": "7f3", "parent_id": null, "author_name": "Mina", "body": "Useful post.", "created_at": "2026-05-16T14:21:00Z", "status": "pending" }
+```
+
+```http
+GET /posts/7f3/comments?status=approved
+
+200 OK
+{ "items": [{ "id": "c12", "post_id": "7f3", "parent_id": null, "author_name": "Ari", "body": "Thanks.", "created_at": "2026-05-15T10:00:00Z", "status": "approved" }] }
+```
+
+```http
+PATCH /comments/c42
+{ "status": "approved" }
+
+200 OK
+{ "id": "c42", "status": "approved", "moderated_at": "2026-05-16T14:25:00Z", "moderated_by": "mod_1" }
+```
+
+```http
+DELETE /comments/c42
+
+204 No Content
+```
+
+Use one error envelope everywhere: `{ "error": { "code": "validation_failed", "message": "Body must be between 1 and 5000 characters.", "fields": { "body": "too_long" } } }`. Status codes: `400` malformed JSON, `401` unauthenticated where required, `403` lacks role, `404` missing post/comment, `409` invalid moderation transition, `422` validation failure, `429` rate limit. My main recommendation to the doer: keep sanitization out of the persistence layer unless there is already a project-wide HTML policy; store plain text or a restricted markdown source, and escape/sanitize when rendering or serializing HTML.
+
+## moderation_workflow_and_copy *(voice: claude)*
+
+## Moderation workflow & copy
+
+### The two views of a pending comment
+
+**Public view:** the comment doesn't exist. No "1 comment awaiting moderation" placeholder, no greyed-out stub. Showing pending content (even redacted) leaks the existence of submissions and invites speculation. Visible count = approved count.
+
+**Author's own view:** their pending comment renders inline in the thread, visually distinct (muted background, small "Awaiting review" pill), with an explicit note that *only they* can see it. This is the most important UX detail in the whole moderation surface — without it, authors assume the comment posted, then re-submit two more times, and you've created your own spam problem. Pin the pending comment to the top of their view so they don't scroll looking for it.
+
+Tie this to a session cookie or signed token rather than account identity (assuming guest comments are allowed); the token expires in ~7 days, after which their pending comment becomes invisible to them too. That's fine — by then it's been moderated or it's stale.
+
+### Copy
+
+```
+Submission confirmation (toast, immediate):
+  "Thanks — your comment is in the queue. A moderator will review it shortly.
+   You'll see it on this page while you're signed in / on this device."
+
+Awaiting-review banner (inline on the pending comment, author-only):
+  "Awaiting review — only you can see this. Most comments are approved within
+   a day."
+
+Rejection notice (author-only, replaces the pending comment):
+  "This comment wasn't published. If you think that's a mistake, you can
+   reply to the moderator at moderation@<site>."
+  ⟶ Deliberately no reason given. See rationale below.
+
+Rate-limit message (returned on submit, 429-style):
+  "You've sent a few comments very quickly. Give it a minute and try again."
+
+Empty moderation queue (admin UI):
+  "Queue's clear. Nice."
+
+Empty thread (public, no approved comments yet):
+  "No comments yet — be the first."
+```
+
+A couple of word-level notes for whoever's wiring this up: don't say "pending approval" to authors (sounds like a verdict is coming and primes complaints); "in the queue" is neutral. Don't say "your comment violated our guidelines" on rejection — it's both legally fraught and an invitation to argue.
+
+### Rejection reasons: deliberately not surfaced
+
+For a small system, surfacing rejection reasons is a trap. Each reason ("spam", "harassment", "off-topic") becomes a debate surface — authors will email asking which rule, why theirs and not that one, etc. Moderator workload balloons. Worse, spammers use the reason to A/B their way past the filter.
+
+Internally, moderators *do* tag rejections (spam / abuse / off-topic / low-quality) — but only for their own analytics and to feed any future automated rules. The author sees a single neutral non-publication notice with an appeal channel. The appeal channel is a real email, not a form, because the volume will be low and the friction is intentional.
+
+### Risk narrative & proportionate mitigations
+
+**Spam floods.** The dominant risk by volume. Mitigations: a per-IP and per-session rate limit (e.g. 3 comments / 10 min, 10 / day); honeypot field; a minimum dwell time on the form (humans take >2s to type a comment, bots submit in 200ms); and — when the queue exceeds some threshold — auto-hold *all* new submissions instead of trying to triage. Don't add CAPTCHA until you actually have a problem; it has real accessibility cost.
+
+**Harassment / targeted abuse.** Lower volume, higher severity. The pre-moderation queue is itself the main mitigation — nothing reaches the public until a human approves it. Secondary: a "block this author token" action in the moderator UI that silently drops future submissions from that token/IP (shadowban — they still see their own pending comments, those just never get approved). Silent dropping avoids the escalation dance where a banned user creates new identities to argue about the ban.
+
+**False positives** (legitimate comments rejected). The appeal email is the safety valve. Track the appeal-to-rejection ratio; if it climbs above a few percent, the moderators are being too aggressive. For a small system, this is a human-calibration problem, not a product problem — don't build a formal appeals workflow yet.
+
+**Out of scope for "keep it small":** ML classifiers, reputation scores, trusted-commenter auto-approve, public moderation logs, edit/delete-after-post by authors. All defensible later; none earn their complexity at v1.
+
+### One-paragraph rationale for the posture
+
+This design picks **pre-moderation with silent outcomes** over the alternatives (post-moderation, reason-disclosed rejection, community flagging). The reasoning: at small scale, a moderator's time is the scarce resource, and every UX affordance that invites a reply from the author (visible reasons, formal appeals, public flag counts) multiplies that cost without proportionally improving outcomes. Silent outcomes plus a low-friction appeal email preserve a human escape hatch without industrializing the conversation around moderation itself. The author-sees-own-pending-comment pattern is the one place we spend UX effort generously, because the failure mode it prevents (duplicate submissions from confused authors) is the single biggest source of self-inflicted queue volume.
+
+---
+
+**One follow-up for whoever's holding the data-model slice:** the author-sees-own-pending-comment behavior needs *something* identity-shaped on the comment row — either a `submitter_token` (for guests) or `author_id` — and a `status` enum with at least `pending | approved | rejected | shadow_dropped`. Worth confirming they've reserved space for `shadow_dropped` as distinct from `rejected`, since the author-facing behavior differs (shadow-dropped should look pending forever to the submitter; rejected shows the notice). If they've collapsed those into one state, the harassment mitigation above doesn't work.
+
+
+---
+
+## Cross-review flags
+
+- **[high] technical at data_model_and_api/moderation_workflow_and_copy**: The moderation slice requires author-visible pending comments via a session cookie or signed token, but the data/API slice only models `author_email` and `user_id`. Guest comments have no `submitter_token` or equivalent, so the API cannot safely return 'only my pending comments' for anonymous authors. → *Add a guest submitter identity field such as `submitter_token_hash`/`submitter_session_id` on `comments`, return/set the token on submit, and define a GET behavior that includes the caller's own pending/rejected comments when the token matches.*
+- **[high] technical at data_model_and_api/moderation_workflow_and_copy**: The moderation slice depends on a `shadow_dropped` state for shadowbanned submissions that remain visible as pending to the submitter forever, but the data model enum is only `pending|approved|rejected|spam`. Collapsing this into `rejected` or `spam` changes author-facing behavior and breaks the harassment mitigation. → *Either add `shadow_dropped`/`shadow_banned` as a distinct internal status, or model it separately with a suppression flag/internal moderation outcome while preserving author-visible `pending`.*
+- **[med] technical at data_model_and_api/moderation_workflow_and_copy**: The data/API slice says `Default status should be pending unless the author is a trusted role`, while the moderation slice lists trusted-commenter auto-approve/reputation behavior as out of scope for v1. That creates a scope mismatch around auto-approval. → *For the small v1, make every new comment default to `pending`; defer trusted-role auto-approval unless authenticated staff/admin comments are explicitly in scope.*
+- **[med] technical at data_model_and_api/moderation_workflow_and_copy**: The data/API slice allows `DELETE /comments/{id}` by author-or-moderator, but the moderation slice explicitly puts edit/delete-after-post by authors out of scope. If guest authors can delete comments, the UX and token identity requirements need to account for that; if they cannot, the API overexposes author actions relative to the workflow. → *Restrict delete to moderators for v1, or explicitly define author deletion as token/account-gated and update the UX scope accordingly.*
+- **[low] narrative at data_model_and_api/moderation_workflow_and_copy**: The moderation copy promises authors will see their queued comment 'while you're signed in / on this device', but the API slice says public reads return approved comments only and does not define an author-specific read response that includes pending or rejected author-only notices. → *Add a separate author-context read path or response rule: public callers get approved only; callers with the submitter token also receive their own pending/rejected comments with author-only display metadata.*
+- **[high] technical at data_model_and_api/moderation_workflow_and_copy**: Status enum mismatch. The data model defines status as enum('pending','approved','rejected','spam'). The moderation slice explicitly requires a distinct `shadow_dropped` state (different from `rejected`) so shadowbanned authors keep seeing their own comment as pending forever. The moderation slice's own follow-up even calls this out. As specified, the harassment mitigation cannot be implemented — `spam` is a moderator-visible classification, not a per-author-invisible drop state. → *Add `shadow_dropped` to the status enum (or split into two columns: a `status` for the moderation decision and a `visibility` for what the submitter sees). Spell out in the API slice that `shadow_dropped` is never returned to the submitter as anything other than `pending`.*
+- **[high] technical at data_model_and_api/moderation_workflow_and_copy**: Identity for guest submitters is unresolved. The moderation slice depends on a `submitter_token` (session cookie / signed token, ~7 day expiry) to let guests see their own pending comment and to power the per-token shadowban. The data model only has `author_name`, `author_email`, `user_id` — no `submitter_token` column and no mechanism to bind a pending comment to a browser session. Without it, neither the author-sees-own-pending UX nor the silent block-this-author action work for guests. → *Add `submitter_token varchar` (hashed) and an index on it to the comments table, and have `POST /posts/{id}/comments` accept/set the token via signed cookie. Document its lifetime and that it gates the author's view of their own pending/shadow-dropped comments.*
+- **[high] technical at data_model_and_api/moderation_workflow_and_copy**: GET semantics contradict the 'public view = approved count' rule. The API says `GET /posts/{id}/comments?status=approved` for anonymous callers returns only approved items — but the moderation slice requires the submitter to see their own pending (and not-yet-expired shadow-dropped) comment inline. The currently-specified endpoint has no way to surface that without either leaking pending comments publicly or requiring a separate call. → *Specify that the public GET also returns the caller's own pending/shadow-dropped comments when a valid submitter_token cookie is present, merged into the items list. Either keep one endpoint with token-aware filtering, or add an explicit `include_own_pending=true` flag — and call out the exact response shape so the UX can render the 'Awaiting review' pill.*
+- **[med] technical at data_model_and_api/moderation_workflow_and_copy**: Rate-limit numbers don't line up. The API slice says rate-limit by IP/user/post but leaves limits unspecified; the moderation slice commits to concrete numbers (3 / 10 min, 10 / day per IP+session). The 429 copy is also defined only in the moderation slice. As written, an implementer reading just the API slice has no idea what triggers a 429. → *Pull the moderation slice's limits into the API spec as the canonical values, and reference the moderation copy ('You've sent a few comments very quickly…') as the body of the 429 error envelope.*
+- **[med] technical at data_model_and_api/moderation_workflow_and_copy**: DELETE behavior diverges from the moderation posture. The API allows author-or-moderator DELETE returning 204, with hard-or-soft delete left to retention policy. The moderation slice lists 'edit/delete-after-post by authors' as explicitly out of scope for v1. These are in direct tension — exposing DELETE to authors contradicts the stated v1 scope. → *For v1, restrict DELETE to moderators only and remove the author path; or, if author-delete stays, update the moderation slice to acknowledge it and specify what the public thread shows in its place (tombstone vs. silent removal).*
+- **[med] narrative at data_model_and_api/moderation_workflow_and_copy**: Rejection UX disagrees on persistence. The API has PATCH transition the row to `rejected` and (per DELETE language) possibly hard-delete; the moderation copy assumes the rejected row persists so the author-only 'This comment wasn't published…' notice can replace the pending comment in their view. If rejection deletes the row, there's nothing left to render that notice against. If it soft-deletes, the API needs to say so and GET needs to return it to the original submitter. → *Commit to soft-delete / status-only transitions for rejection in the data model; never hard-delete rejected rows while the submitter_token is still valid (~7 days). State this in the API slice so the rejection-notice copy has a row to attach to.*
+- **[low] technical at data_model_and_api/moderation_workflow_and_copy**: Trusted-author auto-approve is contradictory. The API slice says default status is `pending` unless the author is a trusted role; the moderation slice lists 'trusted-commenter auto-approve' as out of scope for v1. → *Drop the trusted-role exception from v1 (everything goes to `pending`), or keep it and remove it from the moderation slice's out-of-scope list. Pick one.*
+- **[low] technical at data_model_and_api/moderation_workflow_and_copy**: PATCH success code mismatch with the error contract. PATCH returns 200 on success and 409 on invalid transition, but the broader validation taxonomy uses 422 for validation failures. A transition like `approved -> pending` is arguably a validation failure on the `status` field; whether it's 409 or 422 should be consistent. → *Keep 409 for state-machine violations (the doc's current choice is defensible) but say so explicitly: 409 = illegal transition from current state, 422 = malformed/unknown status value. Make sure the example error envelopes for both exist.*

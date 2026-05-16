@@ -1,0 +1,57 @@
+{
+  "ranking": [
+    "B",
+    "A",
+    "C",
+    "D"
+  ],
+  "scores": {
+    "A": {
+      "perspective_revealed": 7,
+      "hidden_assumption_named": 9,
+      "productive_tension_exposed": 7,
+      "synthesis_quality": 7,
+      "actionability": 8
+    },
+    "B": {
+      "perspective_revealed": 10,
+      "hidden_assumption_named": 9,
+      "productive_tension_exposed": 10,
+      "synthesis_quality": 10,
+      "actionability": 9
+    },
+    "C": {
+      "perspective_revealed": 6,
+      "hidden_assumption_named": 7,
+      "productive_tension_exposed": 6,
+      "synthesis_quality": 6,
+      "actionability": 8
+    },
+    "D": {
+      "perspective_revealed": 6,
+      "hidden_assumption_named": 6,
+      "productive_tension_exposed": 6,
+      "synthesis_quality": 6,
+      "actionability": 8
+    }
+  },
+  "reasoning": {
+    "A": "Correctly identifies the psychological root of the question\u2014the feeling of being 'trapped'\u2014and uses that to shift the frame from a performance debate to a codebase health diagnostic.",
+    "B": "Provides a massive leap in perspective by modeling the literal LOC math against runway and identifying the 'two-tier team' risk that leads to resignations, all while self-synthesizing through a cross-review process.",
+    "C": "Offers a punchy reality check centered on business survival and historical precedent (Spolsky), effectively framing 'occasionally slow' as a weak justification for high-risk bets.",
+    "D": "Presents a logical and surgical engineering management framework that is highly actionable but doesn't surface the deeper organizational or market-timing insights found in B."
+  },
+  "winner_explanation": "Response B reveals the most because it simulates an internal leadership debate, surfacing the 'hidden math' of developer throughput and the specific cultural risk of splitting a 4-person team into Rust-innovators and Python-janitors. By explicitly reconciling technical sizing with organizational retention risks, it helps the developer see the decision as a complex survival calculation rather than just a language choice.",
+  "label_to_config": {
+    "A": "quill_consult",
+    "B": "quill_mosaic",
+    "C": "solo_claude",
+    "D": "solo_codex"
+  },
+  "config_to_label": {
+    "quill_consult": "A",
+    "quill_mosaic": "B",
+    "solo_claude": "C",
+    "solo_codex": "D"
+  }
+}

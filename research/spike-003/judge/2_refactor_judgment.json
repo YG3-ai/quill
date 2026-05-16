@@ -1,0 +1,53 @@
+{
+  "ranking": [
+    "A",
+    "D",
+    "B",
+    "C"
+  ],
+  "scores": {
+    "A": {
+      "usefulness": 10,
+      "multi_aspect_coverage": 10,
+      "internal_consistency": 9,
+      "length_appropriateness": 8
+    },
+    "B": {
+      "usefulness": 8,
+      "multi_aspect_coverage": 8,
+      "internal_consistency": 10,
+      "length_appropriateness": 10
+    },
+    "C": {
+      "usefulness": 7,
+      "multi_aspect_coverage": 8,
+      "internal_consistency": 10,
+      "length_appropriateness": 10
+    },
+    "D": {
+      "usefulness": 9,
+      "multi_aspect_coverage": 9,
+      "internal_consistency": 10,
+      "length_appropriateness": 10
+    }
+  },
+  "reasoning": {
+    "A": "Provides an expert-level deep dive into database schema, migration strategy (expand-and-contract), and operational runbooks, going far beyond a simple code refactor.",
+    "B": "Offers a solid, structured approach with a clear state machine and a good list of risks, though it lacks the migration depth of other responses.",
+    "C": "Emphasizes characterization tests and a safe orchestration layer, but the opening meta-question and general advice are less punchy than the alternatives.",
+    "D": "Highly effective and concise, focusing on trust boundaries and identifying the critical transactional risk of sending emails before DB commits."
+  },
+  "winner_explanation": "Response A wins because it treats the request as a high-stakes architectural change rather than a simple refactor. It provides a detailed migration plan and considers the 'day 2' operational impacts (on-call, support, UX edge cases) that are often the real cause of failure when decomposing core authentication logic.",
+  "label_to_config": {
+    "A": "quill_mosaic",
+    "B": "solo_codex",
+    "C": "quill_consult",
+    "D": "solo_claude"
+  },
+  "config_to_label": {
+    "quill_mosaic": "A",
+    "solo_codex": "B",
+    "quill_consult": "C",
+    "solo_claude": "D"
+  }
+}

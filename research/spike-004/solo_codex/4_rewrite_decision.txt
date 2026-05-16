@@ -1,0 +1,19 @@
+Probably not as a full rewrite.
+
+With 4 engineers, limited Rust production experience, and 12 months of runway, a 50k-line rewrite is a high-risk bet: you would spend a large fraction of your remaining time rebuilding known behavior, re-discovering edge cases, and delaying product work. The odds are good that you ship later than expected and end up with two systems to maintain.
+
+A better approach:
+
+1. **Instrument first**
+   Find where performance actually hurts: slow endpoints, hot loops, database queries, serialization, queue latency, memory pressure. Most “Python performance problems” are really I/O, data model, query, or architecture problems.
+
+2. **Fix the Python monolith deliberately**
+   Add profiling, better tests around risky paths, clearer module boundaries, and targeted refactors. If the monolith is hard to change, improve that directly instead of assuming Rust will make the system simpler.
+
+3. **Use Rust surgically**
+   If profiling finds a CPU-bound hotspot, consider a small Rust extension, worker, or service around that specific path. That lets the Rust-curious engineers build real experience without staking the company on a rewrite.
+
+4. **Only rewrite if there is a business-critical reason**
+   A rewrite might make sense if performance is blocking revenue, Python prevents a required product capability, reliability failures are existential, or hiring/operating the current system is already unsustainable. “Occasionally slow” does not meet that bar.
+
+My recommendation: keep the monolith, add observability and profiling, carve out one well-contained performance-sensitive component as a Rust pilot if the data supports it, and revisit after the team has shipped Rust in production. The runway constraint should bias you toward targeted risk reduction, not a platform rewrite.

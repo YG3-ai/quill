@@ -1,0 +1,128 @@
+A small design that stays practical:
+
+**Data Model**
+
+```text
+posts
+- id
+- title
+- body
+- created_at
+
+comments
+- id
+- post_id
+- author_name
+- author_email
+- body
+- status        // pending, approved, rejected
+- parent_id     // nullable, only if you want simple replies
+- created_at
+- updated_at
+- moderated_at
+- moderated_by
+```
+
+Start with `status = pending` for new comments if moderation is required before display. If you want lower friction, use `approved` by default and only hide comments after reports or admin action.
+
+**REST API**
+
+Public:
+
+```http
+GET /posts/{post_id}/comments
+```
+
+Returns approved comments for a post.
+
+```http
+POST /posts/{post_id}/comments
+```
+
+Creates a comment.
+
+Example request:
+
+```json
+{
+  "author_name": "Sam",
+  "author_email": "sam@example.com",
+  "body": "Great post!"
+}
+```
+
+Server behavior:
+
+- validate `body` length
+- require name/email or authenticated user
+- create comment with `pending` status
+- return `201 Created`
+
+Admin/moderation:
+
+```http
+GET /admin/comments?status=pending
+```
+
+List comments awaiting review.
+
+```http
+PATCH /admin/comments/{comment_id}
+```
+
+Example request:
+
+```json
+{
+  "status": "approved"
+}
+```
+
+Allowed statuses:
+
+```text
+pending
+approved
+rejected
+```
+
+Optional delete endpoint:
+
+```http
+DELETE /admin/comments/{comment_id}
+```
+
+Use this for spam or legal/privacy removal, not normal moderation if you want an audit trail.
+
+**Basic Moderation**
+
+Keep moderation simple:
+
+1. New comments default to `pending`.
+2. Only `approved` comments appear publicly.
+3. Admins can approve or reject comments.
+4. Store `moderated_at` and `moderated_by`.
+5. Add lightweight spam controls:
+   - rate limit by IP/user
+   - max body length
+   - reject empty or link-heavy comments
+   - optional CAPTCHA after repeated submissions
+
+**Indexes**
+
+```text
+comments(post_id, status, created_at)
+comments(status, created_at)
+```
+
+That supports public comment loading and the admin moderation queue.
+
+**Small Starting Version**
+
+If you want the smallest useful version, skip threaded replies and use:
+
+```text
+comments(id, post_id, author_name, author_email, body, status, created_at, moderated_at)
+```
+
+Then add `parent_id`, reports, editing, or user accounts only when the product actually needs them.

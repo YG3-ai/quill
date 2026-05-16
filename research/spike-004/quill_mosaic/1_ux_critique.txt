@@ -1,0 +1,155 @@
+# Mosaic response
+
+**Task:** I have a settings page with 12 toggles. Users complain it is overwhelming. What should I do?
+
+
+## ux_diagnosis_and_grouping *(voice: claude)*
+
+## Why 12 toggles feels overwhelming
+
+It's rarely the *number* — it's that every toggle is presented as equally important, equally consequential, and equally cryptic. Specifically:
+
+1. **Flat hierarchy.** A 12-item list with no visual grouping forces the user to read all 12 before deciding what's relevant. Cognitive load is O(n) when it should be O(log n) via grouping. Miller's 7±2 is the usual cite, but the real issue is *scanning cost* — without sections, the user can't skip past things they don't care about.
+2. **Unclear consequences.** "Enable telemetry" — does that mean crash reports? Usage analytics? Will my data leave the device? When users can't predict the outcome of a toggle, they freeze. They either flip everything off (and break the product) or leave everything alone (and miss features that would help them).
+3. **No defaults signal.** If the ship-state is already correct for 80% of users, the UI is asking them to re-make 12 decisions someone has already made well. The toggles should *feel* like "things you can change if you want," not "things you must decide."
+4. **No notion of which ones matter.** A toggle for "dark mode" sits next to a toggle for "experimental WebGL renderer" with equal visual weight. The frequent/safe knob and the rare/dangerous knob look identical.
+
+## Information architecture proposal
+
+**Group into 3 clusters** (2 is too coarse, 4+ starts to recreate the original problem):
+
+- **Appearance & behavior** — the stuff users touch monthly (theme, density, language, notifications). Visible by default, near the top.
+- **Privacy & data** — things with consequences users care about (telemetry, crash reports, sync). Visible by default, but with a one-line plain-language consequence under each label: *"Sends anonymized crash reports to help us fix bugs. No personal data."*
+- **Advanced** — collapsed by default, behind a disclosure. Power-user stuff: experimental features, dev tools, low-level overrides. Probably 4–6 of your 12 toggles live here.
+
+Add a **search box** at the top once you have grouping — users who know the toggle's name shouldn't have to hunt.
+
+## Presets vs. toggles
+
+Look for toggles that *co-vary*. If "reduce motion," "high contrast," and "larger text" are almost always flipped together, that's not three toggles — that's an **Accessibility preset** ("Standard" / "High contrast") with an "Customize" escape hatch underneath. Same for privacy: a "Minimal data sharing" preset can flip 3–4 related toggles atomically, and the individual toggles remain available for users who want fine-grained control. The rule of thumb: if you'd struggle to write distinct one-line consequences for two toggles, they probably belong in one preset.
+
+## Communicating impact
+
+Every visible toggle needs a **subtitle in plain language** describing what changes when it's on, in concrete user-observable terms — not implementation terms. "Enable hardware acceleration" → *"Uses your GPU for smoother animations. May cause issues on older graphics drivers."* Frame consequences in terms of *what the user will see or experience*, and call out risk/reversibility when relevant. For destructive or sticky toggles ("Delete data on sign-out"), use a confirm step rather than relying on the toggle alone.
+
+**One follow-up worth raising to the developer:** do you have any telemetry on which toggles users actually flip? If yes, the "surface the top 2–3" decision becomes data-driven instead of guesswork — and you may find that 4 of the 12 toggles are flipped by <1% of users and could be moved to Advanced or removed entirely. That's the single highest-leverage piece of input for this redesign.
+
+## settings_schema_and_defaults *(voice: codex)*
+
+I didn’t find a concrete app repo in `/private/tmp`, so I’d frame this as a portable settings contract the doer can adapt. The key move is to stop treating the 12 toggles as 12 independent booleans. Model them as a registry with ownership, defaults, visibility, dependencies, and conflict rules, then let the UI render either a simplified preset selector or a custom detail view from that registry.
+
+```ts
+type SettingId =
+  | "notifications.email"
+  | "notifications.push"
+  | "notifications.digest"
+  | "privacy.profileVisible"
+  | "privacy.activityVisible"
+  | "security.twoFactor"
+  | "security.loginAlerts"
+  | "automation.autoArchive"
+  | "automation.smartSuggestions"
+  | "display.compactMode"
+  | "display.animations"
+  | "beta.experimentalFeatures";
+
+type SettingGroup = "notifications" | "privacy" | "security" | "automation" | "display" | "labs";
+type DepStatus = "active" | "deprecated" | "hidden" | "removed";
+
+type SettingSchema = {
+  id: SettingId;
+  group: SettingGroup;
+  default: boolean;
+  advanced: boolean;
+  status: DepStatus;
+  dependsOn?: Array<{ id: SettingId; value: boolean; cascade?: "disable" | "forceOff" | "forceOn" }>;
+  conflictsWith?: Array<{ id: SettingId; when: boolean; resolve: "preferUser" | "preferSafety" | "forceOffThis" | "forceOffOther" }>;
+  deprecatedBy?: SettingId;
+  migrationNote?: string;
+};
+```
+
+Presets should be named overlays, not separate state. Persist `{ mode: "simple" | "custom", overrides: Partial<Record<SettingId, boolean>>, schemaVersion }`. A preset computes effective values by starting from schema defaults, applying the preset overlay, then applying user overrides only in `custom` mode. For example: `Simple` could enable only the safest, highest-value defaults; `Recommended` could use product defaults; `Custom` preserves all user-chosen non-defaults. Do not store “simple toggle states” separately, because that creates drift. Store the selected mode plus explicit overrides, and derive the 12 booleans every time.
+
+Migration should preserve intent without dragging every legacy user into Custom unnecessarily. On first load after the redesign, compare each legacy value to the new schema default. If all values match a preset, assign that preset and no overrides. If values differ only on advanced settings, assign `Simple` or `Recommended` plus hidden overrides, and surface “customized advanced settings” only when they open advanced controls. If any visible setting differs from the preset, assign `Custom` and carry over only non-default values. Deprecated settings should be mapped through `deprecatedBy` when possible; if no replacement exists, keep the old value in a read-only migration record for audit/rollback but exclude it from effective state.
+
+Dependency and conflict resolution should be deterministic and testable. Compute effective settings in phases: defaults, preset overlay, user overrides, deprecation mapping, dependency cascades, conflict resolver. Dependency examples: if `notifications.email=false`, then `notifications.digest` should be `forceOff`; if `security.twoFactor=false`, `security.loginAlerts` may remain enabled but should not depend on 2FA unless the product truly requires it. Conflict examples: if `privacy.activityVisible=false` conflicts with `automation.smartSuggestions=true`, prefer privacy/safety and force suggestions off. Return both `effectiveSettings` and `resolutionEvents`, so the UI can explain “Smart suggestions were turned off because activity visibility is disabled” instead of silently flipping toggles.
+
+One implementation detail I’d push for: put the schema in one typed registry and make the settings page, API validation, migration job, and tests all consume that same registry. The complaints are about UX overload, but the lasting fix is a coherent model where “advanced,” “deprecated,” “depends on,” and “conflicts with” are data, not scattered conditionals.
+
+## copy_and_empty_states *(voice: claude)*
+
+Here's a copy pass. I don't know the product, so I picked plausible toggles (a notes/writing app) — the doer can swap nouns; the voice and structure are the point. Verbs-and-outcomes, sentence case, no "please," helper text only when the consequence isn't obvious from the label.
+
+**Page title:** Settings
+**Subtitle (default/empty state, before any overrides):** You're on the defaults. Change anything here and we'll remember it on this account.
+
+**Section: Your account**
+- *Stay signed in on this device* — Skip the sign-in screen next time you open the app.
+- *Require a second step to sign in* — Use an authenticator app whenever you sign in from somewhere new.
+
+**Section: Writing**
+- *Save as you type* — Drafts are saved every few seconds. No save button needed.
+- *Check spelling* — Underline misspelled words while you write.
+- *Suggest clearer phrasing* — Quiet suggestions appear in the margin. You decide whether to take them.
+- *Sync across your devices* — Changes show up on your phone, tablet, and other browsers within a few seconds.
+
+**Section: Appearance**
+- *Match my system theme* — Switch to dark when your OS does. Turn this off to pick a theme yourself.
+- *Reduce motion* — Skip the slide and fade animations.
+
+**Section: Notifications**
+- *Email me product updates* — A short note when we ship something worth knowing about. Roughly monthly.
+- *Email me tips and offers* — Occasional ideas, deals, and survey invites.
+
+**Advanced disclosure (collapsed by default):**
+Label: **Advanced** — `▸` chevron, with sublabel "Beta features, diagnostics, and developer tools." Expanded label: "Advanced — these are off by default. Turn them on if you know what you're doing."
+- *Share anonymous usage data* — Helps us see which features people actually use. No document contents, ever.
+- *Send crash reports automatically* — When the app crashes, we get a stack trace. Nothing from your documents.
+- *Try beta features* — Get early access to things we're still polishing. Expect rough edges.
+- *Show keyboard shortcut hints* — Tiny shortcut labels appear next to menu items.
+
+**Presets (above the toggle list, as a row of three cards):**
+- **Default** — Most people leave it here. Sync on, drafts saved, theme follows your system.
+- **Focused** — Same as Default, minus the writing suggestions and the email notifications. Quieter screen, quieter inbox.
+- **Privacy-first** — Turns off usage data, crash reports, and marketing email. Sync stays on so your work follows you.
+
+Below the cards: *Pick one to start. You can change individual toggles afterward — presets aren't locked.*
+
+**Reorg notice (one-time, dismissible banner at top, for users with prior config):**
+> We reorganized this page. Your settings carried over — nothing was turned on or off — but a few options moved into **Advanced**. Take a look when you have a minute. **Got it** · **Show what moved**
+
+The "Show what moved" link opens a small dialog: *Three things moved into Advanced: usage data, crash reports, and beta features. Your choices for each are unchanged.*
+
+**Reset to defaults — button label:** Reset to defaults
+**Confirmation dialog:**
+> **Reset all settings?**
+> This puts every toggle back to its default. Your account, documents, and sign-in stay exactly as they are — only the preferences on this page change.
+> [**Reset settings**] [Cancel]
+
+**After reset (toast):** Settings reset. Undo (8s)
+
+**Empty state for a fresh account (if you show this page before they've touched anything):**
+> Nothing to tweak yet — the defaults are a good starting point. Come back here whenever something bugs you.
+
+A note for synthesis: the helper text only fires where the label alone would leave a user guessing about a *consequence* (sync scope, what data leaves the device, what "beta" implies). I deliberately didn't write helper text under obvious ones like *Check spelling* — adding it there is what makes settings pages feel patronizing, and it's a tell that the redesign is decorating rather than simplifying. If the IA folks land on different groupings, the labels and helper lines port across cleanly; the presets are the piece most coupled to the final toggle set, so re-check those last.
+
+One question back: are any of these 12 toggles actually *account-level* vs *device-level*? If sync, theme, or "stay signed in" differ in scope, the copy needs a small scope hint ("on this device" / "on all your devices") that I've only partly threaded in — worth a pass once the IA agent's grouping lands.
+
+
+---
+
+## Cross-review flags
+
+- **[high] factual at ux_diagnosis_and_grouping/copy_and_empty_states**: The original task is a settings page with 12 toggles. The copy slice proposes 14 toggles: 2 account + 4 writing + 2 appearance + 2 notifications + 4 advanced. The UX slice stays within the 12-toggle premise and suggests 4-6 of the 12 may live in Advanced. → *Have the copy slice collapse or remove two example toggles, or explicitly mark the list as illustrative and require synthesis to map copy patterns onto exactly 12 real settings.*
+- **[med] narrative at ux_diagnosis_and_grouping/copy_and_empty_states**: The UX slice says Privacy & data items like telemetry, crash reports, and sync should be visible by default because users care about their consequences. The copy slice puts usage data and crash reports under collapsed Advanced, and its reorg dialog says those moved into Advanced. → *Decide whether data-sharing controls are first-class Privacy & data settings or Advanced diagnostics. If they remain Advanced, the UX rationale should distinguish low-risk diagnostics from privacy-critical data controls.*
+- **[med] technical at settings_schema_and_defaults/copy_and_empty_states**: The schema slice defines presets as overlays with persisted mode values like simple/recommended/custom, and says user overrides apply only in custom mode. The copy slice says users can pick Default/Focused/Privacy-first and then change individual toggles afterward, implying presets are editable without necessarily switching modes. → *Specify that changing any individual toggle after selecting a preset transitions the account to Custom, while retaining the preset as the starting overlay for comparison or reset.*
+- **[low] factual at ux_diagnosis_and_grouping/settings_schema_and_defaults/copy_and_empty_states**: The slices use different concrete taxonomies: UX proposes Appearance & behavior, Privacy & data, Advanced; schema uses notifications/privacy/security/automation/display/labs; copy uses Your account/Writing/Appearance/Notifications/Advanced. The difference is partly because later slices are portable examples, but synthesis could accidentally mix labels from incompatible models. → *Treat the concrete group names as placeholders except for the shared principle: visible everyday settings, visible consequence-heavy privacy/security settings, and collapsed advanced/labs settings. Pick one final taxonomy before implementation/copy lock.*
+- **[low] narrative at settings_schema_and_defaults/copy_and_empty_states**: The copy slice's migration banner promises 'nothing was turned on or off.' The schema slice allows deprecated settings with no replacement to be excluded from effective state, which could make that promise false for some legacy users. → *Either guarantee migration preserves effective behavior for all non-removed settings, or soften the banner to 'Your current choices carried over where the setting still exists' and show exceptions in the 'what moved' dialog.*
+- **[high] technical at settings_schema_and_defaults/copy_and_empty_states**: Slice 2's preset model persists `{ mode: 'simple' | 'custom', overrides }` and explicitly states user overrides are applied 'only in custom mode' — so picking the Simple preset locks individual toggles. Slice 3's preset card subtitle promises the opposite: 'Pick one to start. You can change individual toggles afterward — presets aren't locked.' If the doer ships Slice 2's state model verbatim, Slice 3's copy is a lie; if they ship Slice 3's behavior, Slice 2's mode-gated override logic has to change (e.g., any per-toggle change auto-promotes mode from Simple → Custom, which should then be reflected in the copy as a one-time prompt or status change). → *Pick one model: either presets are sticky containers (Slice 2) and the copy must say so ('Switch to Custom to fine-tune'), or presets are starting points (Slice 3) and Slice 2's state shape becomes `{ overrides, lastPresetApplied? }` with no mode flag gating override application.*
+- **[high] factual at ux_diagnosis_and_grouping/copy_and_empty_states**: Slice 1 puts 'Privacy & data — telemetry, crash reports, sync' as one of the three top-level clusters, 'Visible by default, near the top,' with the explicit reasoning that these have consequences users care about. Slice 3 buries 'Share anonymous usage data' and 'Send crash reports automatically' inside the collapsed Advanced disclosure ('these are off by default. Turn them on if you know what you're doing'). These are direct contradictions about both placement and default state for the same items. → *Reconcile placement: either telemetry/crash reports are first-class privacy items visible by default (Slice 1's stance) with consequence subtitles, or they're advanced opt-ins (Slice 3's stance) — but the IA slice and the copy slice need to point at the same shelf. Slice 1's reasoning ('users care about consequences') is the stronger argument; I'd flag this to the developer.*
+- **[med] technical at ux_diagnosis_and_grouping/settings_schema_and_defaults**: Slice 1 prescribes '3 clusters (2 is too coarse, 4+ starts to recreate the original problem)'. Slice 2 defines 6 groups in the schema (notifications, privacy, security, automation, display, labs). Slice 3 renders 5 visible sections plus Advanced. The schema and the rendered UI both exceed Slice 1's stated ceiling. → *Either Slice 1 relaxes the 3-cluster rule (with rationale — e.g., groups can exceed 3 if half are single-item and visually compact), or Slices 2/3 collapse groups (security→privacy, automation→behavior, labs→advanced) to land at 3 visible top-level clusters with sub-headings.*
+- **[med] narrative at settings_schema_and_defaults/copy_and_empty_states**: Slice 3's reorg banner promises 'Your settings carried over — nothing was turned on or off.' Slice 2's migration logic includes deprecation mapping ('if no replacement exists, keep the old value in a read-only migration record but exclude it from effective state') and dependency cascades that can force values off (e.g., 'Smart suggestions were turned off because activity visibility is disabled'). Both paths can produce effective-state changes the user didn't make, which contradicts the banner's promise. → *Soften the banner copy to be truthful under Slice 2's model: 'Your settings carried over. A few options were renamed, moved, or replaced — we'll show you what changed.' The 'Show what moved' dialog already exists in Slice 3; extend it to surface deprecated→replacement mappings and cascade-forced values.*
+- **[low] technical at ux_diagnosis_and_grouping/settings_schema_and_defaults**: Slice 1 estimates 'Probably 4–6 of your 12 toggles live [in Advanced].' Slice 2's schema groups only one toggle under `labs` (`beta.experimentalFeatures`) and the `advanced: boolean` flag isn't populated for any concrete setting in the example. Slice 3 places 4 toggles in Advanced. The schema doesn't operationalize Slice 1's estimate. → *Populate `advanced: true` on the schema entries the team wants behind the disclosure (likely the telemetry/crash/beta cluster plus 1–2 more), so the registry actually drives Advanced placement instead of the UI hardcoding it.*
+- **[low] technical at settings_schema_and_defaults/copy_and_empty_states**: Slice 3 ships a 'Reset to defaults' button and confirmation dialog. Slice 2's state model is `{ mode, overrides, schemaVersion }` — it's not specified what Reset does to `mode`. Does it clear overrides and keep current mode, force `mode='simple'`, or force `mode='custom'` with empty overrides (which would re-render the user's screen identically to defaults but in a different state shape)? → *Define Reset semantics in the schema slice: probably `{ mode: <chosen-default-preset>, overrides: {} }`, and have the Slice 3 toast reflect that ('Settings reset to Default preset').*
+- **[low] narrative at ux_diagnosis_and_grouping/copy_and_empty_states**: Slice 1 recommends helper text on every visible toggle stating user-observable consequences. Slice 3 deliberately omits helper text on 'obvious' toggles like *Check spelling* and explicitly defends this ('adding it there is what makes settings pages feel patronizing'). Both positions are defensible but they're different rules. → *Adopt Slice 3's narrower rule ('helper text only where the label leaves the user guessing about a consequence') and update Slice 1's prescription to match — Slice 3's reasoning is sound and the stricter rule produces cleaner pages.*

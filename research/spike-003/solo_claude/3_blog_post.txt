@@ -1,0 +1,9 @@
+Two AIs, one keyboard. It sounds like overkill until you try it.
+
+The interesting part isn't that you get more output — it's that you get *adversarial* output. A single agent loves its own plan. It wrote the plan. It will defend the plan halfway into a doomed refactor before noticing the smell. A second agent, given only the diff and the goal, has no sunk cost. It asks the obvious question the first one stopped asking around token 40,000.
+
+This maps to something real in how these models fail. Long-horizon coding sessions drift: assumptions ossify, dead paths get rationalized, "almost working" becomes "working." A reviewer agent operating from a clean context is just a cheap way to keep re-grounding the work. It's pair programming where one of you didn't watch the other dig the hole.
+
+The economics are also weirdly favorable. Advisor calls are short and cacheable. The doer eats most of the tokens. You're paying maybe 10-15% overhead for something that catches the class of mistakes that costs you an afternoon.
+
+The real shift: you stop thinking of the agent as a coworker and start thinking of it as a *role*. Doer and reviewer are different jobs. Same model, different seat, different blind spots.

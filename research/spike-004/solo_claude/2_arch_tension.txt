@@ -1,0 +1,10 @@
+Short answer: no, not yet. Adopt it when a concrete requirement forces it — not in anticipation.
+
+At 100k/day (~1.2/sec), even with 20% q/q growth you're at ~300k/day in 18 months. That's comfortably in "append-only table + good indexes" territory. The cost of event sourcing isn't the write path; it's the team-wide shift in how you model state, evolve schemas, rebuild projections, and debug. With six backend engineers and zero ES experience, you'd be paying that tax on every feature for a payoff that may never land.
+
+What I'd do instead:
+- **Now:** an immutable `activity_events` table (append-only, `user_id`, `event_type`, `payload jsonb`, `occurred_at`, monotonic id). Never update or delete. That alone gives you ~80% of what people actually want from "event sourcing" — a replayable, queryable history — without the projection machinery.
+- **Design for the door:** publish those events to a log (Kafka/Kinesis/Postgres logical replication/outbox) *if* you already have one, so a future ES or CDC consumer is a read-side addition rather than a rewrite. If you don't have a log today, don't add one for this.
+- **Revisit when:** (a) compliance actually lands and dictates retention/immutability semantics you can't meet, (b) you need to derive multiple independent read models from the same history, or (c) you hit a real concurrency/audit bug the append-only table can't answer.
+
+The tradeoff to be honest about: if compliance does land in 18 months and demands full event-sourced semantics (not just an audit log), you'll do a migration. But migrating a well-designed append-only table into ES is a normal project; running ES badly for 18 months across an inexperienced team is a slow tax with compounding interest. Bet on the cheaper-to-reverse option.

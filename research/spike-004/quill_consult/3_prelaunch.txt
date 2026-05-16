@@ -1,0 +1,31 @@
+Before I answer: two things matter more than any generic checklist.
+
+1. What is the smallest rollback you have tomorrow: feature flag, merchant allowlist, percentage ramp, provider kill switch, or all-or-nothing deploy?
+2. What part of the payment flow have you personally not seen succeed end-to-end in a production-like environment?
+
+If either answer is weak, that is probably what you missed.
+
+For a launch tomorrow at noon, I’d focus on the top risks:
+
+1. **Rollback and blast radius**
+   Make sure you can disable the integration without redeploying, and that disabling it leaves users in a coherent state. If payments can be partially created, authorized, captured, refunded, or marked paid, define exactly what happens when you turn it off mid-flow.
+
+2. **Idempotency and retries**
+   Confirm every payment creation, webhook handler, capture, refund, and reconciliation path is idempotent. The failure mode to fear is not “payment fails”; it is “customer is charged twice, app records once.”
+
+3. **Webhook truth vs app truth**
+   Decide which system is authoritative for payment state. Test out-of-order, duplicated, delayed, and missing webhooks. Make sure a successful provider-side payment cannot remain permanently “pending” in your app.
+
+4. **Reconciliation and support visibility**
+   Someone should be able to answer at 12:15: “Which payments succeeded, failed, are pending, and need manual review?” Have dashboards, provider links, request IDs, customer IDs, and logs ready. Support needs exact language for common failures.
+
+5. **Money edge cases**
+   Check currency, rounding, tax, fees, partial refunds, voids, failed captures, expired authorizations, disputes, saved payment methods if applicable, and sandbox-vs-production config. Verify live keys, webhook secrets, allowed domains, return URLs, and merchant/account IDs.
+
+6. **Security and compliance**
+   Make sure you are not logging card data, bank data, raw provider payloads with sensitive PII, or secrets. Confirm PCI scope assumptions, access controls, audit logs, and secret rotation path.
+
+7. **Launch shape**
+   Do not launch to everyone at noon if you can avoid it. Start with internal/test accounts, then one low-risk merchant/customer segment, then expand. Have one named person watching metrics and one named person empowered to stop the launch.
+
+My blunt read: the most common miss is treating “checkout worked once” as proof. For payments, the launch is only ready when failure, retry, webhook delay, duplicate event, rollback, and reconciliation behavior are boring.

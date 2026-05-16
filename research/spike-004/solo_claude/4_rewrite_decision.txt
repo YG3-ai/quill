@@ -1,0 +1,13 @@
+No, don't do it.
+
+The math is brutal: a 50k-line rewrite with 4 engineers where 2 are Rust-curious (not Rust-proficient) and 0 have shipped it at scale will eat most or all of your 12 months of runway. And rewrites famously slip — Joel Spolsky's "things you should never do" essay is old but the dynamics haven't changed. You'll be reproducing existing behavior (including bugs customers now depend on) instead of shipping the things that extend runway.
+
+The signal that actually matters in your description: "performance is occasionally an issue but not a daily pain." That is nowhere near a strong enough forcing function to justify a full rewrite. Rewrites are justified when the current stack is actively blocking the business — you can't hire, you can't scale, you can't ship features, customers are leaving. "Occasionally slow" is a profiling-and-optimization problem, not a language problem.
+
+What I'd suggest instead, roughly in order:
+
+1. **Profile the actual hot paths.** Most Python perf issues are algorithmic, I/O-bound, or fixable with better data structures. You often get 10x without leaving Python.
+2. **If you find a genuinely CPU-bound hot path**, rewrite *just that module* in Rust via PyO3 and keep the monolith. Your Rust-curious engineers get real shipped-Rust experience on a bounded surface, you get the perf win, and you preserve optionality. If after a year that experiment went great and Rust is clearly the right long-term bet, *then* you have data to justify a bigger migration.
+3. **Spend the runway on what extends the runway** — features, customers, revenue. Not on rebuilding software that already works.
+
+The only version of "yes" I'd entertain: if the real motivation is hiring/retention or a specific architectural problem Python genuinely can't solve, say that out loud — because then the decision criteria are completely different and worth talking through.

@@ -1,0 +1,33 @@
+Tomorrow is **Sunday, May 17, 2026 at noon**. For a payments launch, I’d check these before you ship:
+
+1. **Rollback path**
+   Can you disable the new integration without redeploying? Feature flag, routing switch, or config-only rollback should be ready.
+
+2. **Idempotency**
+   Retries must not double-charge. Confirm idempotency keys are used consistently for payment creation, webhook handling, and order fulfillment.
+
+3. **Webhook failure handling**
+   Test duplicate, delayed, out-of-order, and missing webhooks. Your system should reconcile from the provider API, not rely only on webhooks.
+
+4. **Money correctness**
+   Verify currency, rounding, tax, discounts, partial refunds, full refunds, failed captures, authorization expiry, and zero/edge-value orders.
+
+5. **Observability**
+   Have dashboards and alerts for payment success rate, provider errors, webhook lag/failures, duplicate attempts, refund failures, and order/payment mismatches.
+
+6. **Customer support path**
+   Support needs clear answers for: charged but no order, order created but payment pending, duplicate charge, refund timing, bank decline, and provider outage.
+
+7. **Provider outage behavior**
+   Decide what users see if the provider is degraded. Avoid ambiguous states like “order confirmed” when payment status is unknown.
+
+8. **Reconciliation**
+   Run a post-launch job/report comparing internal orders against provider charges, captures, refunds, and disputes.
+
+9. **Security/compliance**
+   Confirm you are not storing raw card data, logs do not contain sensitive payment fields, secrets are rotated/stored correctly, and webhook signatures are verified.
+
+10. **Launch staffing**
+   Have an engineer, support contact, and decision-maker available for the first few hours after noon. Define who can call rollback.
+
+The biggest misses are usually not the happy-path payment request. They are **duplicate retries, webhook edge cases, bad user-facing pending states, and no fast rollback**.
