@@ -58,24 +58,46 @@ def _extract_json(text: str) -> dict | None:
     return None
 
 
-async def _plan_mosaic(planner: Advisor, task: str) -> list[dict]:
-    """Call the planner advisor; return the parsed plan as a list of slice dicts."""
+async def _plan_mosaic(planner: Advisor, task: str, _attempt: int = 1) -> list[dict]:
+    """Call the planner advisor; return the parsed plan as a list of slice dicts.
+
+    Retries once with a more insistent system prompt if the first attempt
+    returns prose instead of JSON. This was a real failure mode in spike-004
+    when the planner judged a decision-support task as "not really an
+    implementation task" and responded with prose explaining its reservation
+    instead of returning JSON. The fix is the prompt update in prompts.py
+    plus this single-retry safety net.
+    """
     prompt = mosaic_planner_prompt(task)
+    if _attempt == 1:
+        system_msg = (
+            "You produce structured JSON plans for mosaic-mode task "
+            "decomposition. Return JSON only, no preamble or commentary."
+        )
+    else:
+        system_msg = (
+            "Previous attempt returned prose instead of JSON. You MUST "
+            "return ONLY a JSON object this time — starting with { and "
+            "ending with }. No prose. No explanation. No preamble. "
+            "If you have reservations about the task, encode them in the "
+            "'rationale' field of a single-slice plan."
+        )
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "You produce structured JSON plans for mosaic-mode task "
-                "decomposition. Return JSON only, no preamble or commentary."
-            ),
-        },
+        {"role": "system", "content": system_msg},
         {"role": "user", "content": prompt},
     ]
     reply = await planner.chat(messages, max_tokens=800, temperature=0.4)
     parsed = _extract_json(reply)
+    if (not parsed or "plan" not in parsed) and _attempt == 1:
+        log.warning(
+            f"mosaic planner returned non-JSON on attempt {_attempt}; "
+            f"retrying once. Got: {reply[:200]!r}"
+        )
+        return await _plan_mosaic(planner, task, _attempt=2)
     if not parsed or "plan" not in parsed:
         raise ValueError(
-            f"Planner did not return valid JSON with 'plan' key. Got: {reply[:200]!r}"
+            f"Planner did not return valid JSON with 'plan' key after "
+            f"{_attempt} attempts. Got: {reply[:200]!r}"
         )
     plan = parsed.get("plan", [])
     if not isinstance(plan, list) or not plan:

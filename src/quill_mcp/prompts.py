@@ -62,25 +62,35 @@ Translate jargon entirely. Examples:
 The developer is smart but doesn't know the vocabulary. Make every question something they can decisively answer based on what they actually want for their users."""
 
 
-DEFAULT_MOSAIC_PLANNER_PROMPT = """You are decomposing a software task into a mosaic of slices, where each slice is owned by a different AI agent based on which agent's voice fits best.
+DEFAULT_MOSAIC_PLANNER_PROMPT = """You are decomposing a task into a mosaic of slices, where each slice is owned by a different AI agent based on which agent's voice fits best.
 
 The task: "{task}"
 
-Your job: produce 2-4 slices. For each slice, specify:
-- A name (snake_case, e.g. "data_model", "ux_copy", "tests")
+Tasks come in different shapes. Match your decomposition strategy to the shape:
+
+- **Implementation tasks** (build a feature, fix a bug, design a system): decompose by ASPECT — data model, API, UX, tests, docs, migration.
+- **Decision-support tasks** (should we adopt X, refactor or rewrite, what's the right architecture): decompose by FRAME — technical tradeoffs, team/organizational considerations, time-horizon implications, reversibility analysis.
+- **Critique tasks** (review this, what's wrong, what did we miss, pre-launch hardening): decompose by VANTAGE — code/security review, UX/user-impact, operational/maintenance, organizational/team risk.
+
+Your job: produce 2-4 slices appropriate to the task shape. For each slice, specify:
+- A name (snake_case, e.g. "data_model", "technical_tradeoffs", "team_readiness")
 - A description of what the slice contains
 - An assigned voice (one of: codex, claude)
 - A rationale for why that voice fits this slice
 
 Voice profiles:
-- **Codex** (gpt-5-codex via codex CLI): precision, edge cases, file:line citations, structural decomposition, rigorous tests, schema design. Best for: data models, API design, test suites, performance analysis, code that needs to be obviously correct.
-- **Claude** (claude-sonnet-4-6 via claude CLI): humanistic framing, metaphor, anticipates user feelings, micro-copy with warmth, storytelling. Best for: UX flow, error messages, documentation, risk narratives, anything that requires reading between the lines of what a user might feel.
+- **Codex** (gpt-5-codex via codex CLI): precision, edge cases, file:line citations, structural decomposition, rigorous tests, schema design. Best for: data models, API design, technical tradeoffs, test suites, performance analysis, code-reading-grounded perspectives, anything that needs to be obviously correct.
+- **Claude** (claude-sonnet-4-6 via claude CLI): humanistic framing, metaphor, anticipates user feelings, micro-copy with warmth, storytelling. Best for: UX flow, error messages, documentation, risk narratives, organizational/team considerations, decision framing, anything that requires reading between the lines of what a user or team might feel.
 
-Decompose by ASPECT, not by FILE. A good split is "backend API + frontend UX + tests + docs" — bad splits are "user.py + post.py + auth.py."
+Decompose by ASPECT (implementation), FRAME (decision), or VANTAGE (critique) — never by FILE. A good split is "backend API + frontend UX" or "technical tradeoffs + team readiness"; bad splits are "user.py + post.py + auth.py."
 
-If the task has fewer than 2 substantive aspects, return a single slice and note in the rationale that mosaic mode may not be the right fit.
+If the task is clearly single-aspect or wants a polished single artifact (writing a short post, writing a small doc, very small features), return a SINGLE slice and note in the rationale that mosaic mode may not be the right fit for this task shape.
 
-Return JSON only, no preamble or commentary:
+**CRITICAL OUTPUT FORMAT:**
+
+You MUST return ONLY valid JSON. No preamble. No commentary. No explanation outside the JSON. If you have reservations about whether the task is mosaic-shaped, encode those reservations in the `rationale` field of your slices — never in prose outside the JSON. Downstream parsing depends on JSON-only output; prose responses cause hard failures.
+
+Return JSON only:
 {"plan": [{"slice": "...", "description": "...", "voice": "...", "rationale": "..."}, ...]}"""
 
 
