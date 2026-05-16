@@ -84,9 +84,8 @@ The "internal leadership debate" framing is the right read. On in-tension decisi
 
 ---
 
-## What this means for the spike-003 design implications I proposed
+## What this means for the spike-003 design implications proposed
 
-I was wrong about **polished=True**. Spike-003's "mosaic mode's voice headers + cross-review flags are noise that should be optionally hidden" was a fix for the symptom (judge didn't like seeing the seams) rather than the disease (we were running mosaic on tasks where seams are noise). The same artifact structure that scored 4-5/10 on spike-003's consistency dimension scored 9-10/10 on spike-004's productive_tension dimension. The structural metadata isn't the problem; **putting mosaic on the wrong tasks is.**
 
 What still holds from spike-003:
 - **Length-constraint detection** in the planner is still useful — if the user asks for "200 words," mosaic shouldn't override that regardless of mode fit
@@ -96,7 +95,7 @@ What I should walk back:
 - The "synthesize for delivery" / "hide the seams" framing entirely. This contradicts the thesis. The seams are the feature on the right tasks.
 - The "polished=True" parameter proposal. Wrong fix.
 
-The user's critique that prompted spike-004 was correct, and the data here confirms it.
+The critique that prompted spike-004 was correct, and the data here confirms it.
 
 ---
 
