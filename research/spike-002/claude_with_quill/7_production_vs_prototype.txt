@@ -1,0 +1,12 @@
+Bandage it — but reframe what "bandage" means. Your 5 lines aren't tech debt; they're the only code that's been proven by 2,000 people. A rewrite throws away that validation and replaces working behavior with new bugs you haven't discovered yet.
+
+What you actually have is a small set of specific failure modes. Treat each one as its own production decision, in this order:
+
+1. **Visibility first.** You can't fix flakiness you can't see. Add structured logging, an error tracker (Sentry), and a basic uptime check. ~1 hour. This alone often turns "feels flaky" into "oh, it's this one endpoint."
+2. **Error handling at the boundaries.** Wrap external calls (DB, APIs) with try/catch + a sane fallback. Don't validate internal invariants — just stop letting a single bad input return a 500.
+3. **Cold starts.** Usually one of: ORM/connection setup, a heavy import, or platform-specific (Lambda/Cloud Run scale-to-zero). Measure before optimizing — keep-warm pings, smaller deps, or a min-instance setting often fix it in a config change, not a rewrite.
+4. **Then stop.** Don't refactor what isn't broken.
+
+The deeper thing worth naming: a "5-line MVP with 2,000 daily users" isn't a liability you need to atone for with a rewrite — it's a success that earned the right to grow up incrementally. You don't need to pretend the original was irresponsible to make the next version more responsible. Hardening *is* the production decision; rewriting is often just anxiety wearing an engineering costume.
+
+If after step 1 you discover the architecture genuinely can't support what users are doing (e.g., it's synchronous and needs a queue), *that's* when a targeted rewrite of one component is justified — informed by real data, not by the gap between "5 lines" and "2,000 users."

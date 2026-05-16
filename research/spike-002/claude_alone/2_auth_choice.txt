@@ -1,0 +1,5 @@
+For a 6-week MVP with no compliance requirements and two cofounders, use **Clerk** (or Auth0). Rolling your own bcrypt+JWT eats a week you don't have on session management, password resets, email verification, and the security edge cases — none of which differentiate your product. Firebase Auth is fine but pulls you toward the rest of the Firebase ecosystem; if you're not already committed to that, Clerk has nicer DX and drop-in React components.
+
+The main tradeoff: managed auth costs ~$25/mo once you cross the free tier (~10k MAU for Clerk), and migrating off later is real work. But "later" means you have users, which is the problem worth having. Ship the thing.
+
+One caveat — if your product *is* the auth layer, or you need unusual flows (custom SSO, multi-tenant orgs with weird hierarchies), revisit. Otherwise, default to Clerk.

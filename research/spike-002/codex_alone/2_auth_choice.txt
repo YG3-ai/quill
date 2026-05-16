@@ -1,0 +1,11 @@
+Use a managed auth provider. For a 6-week MVP with 2 cofounders, rolling your own auth is almost certainly the wrong use of time.
+
+I’d choose based on your stack:
+
+- **Clerk**: best if you want fast, polished auth UX in a modern web app, especially React/Next.js.
+- **Firebase Auth**: good if you are already using Firebase/Google Cloud or want cheap, straightforward email/social login.
+- **Auth0**: powerful and enterprise-friendly, but often heavier than needed for a small MVP.
+
+Do **not** start with custom bcrypt + JWT unless auth is part of your core product or you have unusual requirements. “Simple auth” becomes password resets, email verification, session invalidation, OAuth edge cases, account linking, rate limiting, token storage, CSRF/XSS concerns, breached-password checks, MFA, auditability, and support tooling. None of that helps you learn faster about your market.
+
+My recommendation: **use Clerk if you’re building a web SaaS MVP**, otherwise **Firebase Auth if you’re already in the Firebase ecosystem**. Revisit later only if auth cost, vendor lock-in, or compliance becomes a real constraint.

@@ -1,0 +1,15 @@
+Before we wire anything up — "analytics" usually splits into a few different tools, and picking the wrong one means you instrument a lot and learn very little. I want to make sure we point at the right thing first, but I don't want to drag you through a long requirements interview either.
+
+Quick question to narrow it: **what decision do you want this data to make easier?** Most requests fall into one of these buckets:
+
+- **Traffic / acquisition** — how many people show up, where from. → GA4, Plausible, Fathom.
+- **Product behavior** — which features get used, where users drop off, funnels & retention. → PostHog, Mixpanel, Amplitude.
+- **Conversions** — did the signup/purchase/upgrade happen, attributed to what. → Often product-analytics + ad-platform pixels.
+- **Errors & performance** — what's broken, what's slow. → Sentry, Datadog, OpenTelemetry. (Technically observability, not analytics, but people often mean this.)
+- **Just confidence the app is alive and being used** — totally valid; the lightest tool wins.
+
+Also helpful to know:
+1. **Platform** — web, mobile (iOS/Android/RN), backend service, desktop?
+2. **Privacy posture** — anything cookieless / GDPR-strict / self-hosted required? (Big fork: PostHog self-hosted vs. Plausible vs. GA4 land in very different places here.)
+
+If you tell me the bucket + platform, I can give you a concrete setup — library, init snippet, and the 3–5 events worth tracking on day one — instead of a generic shopping list.

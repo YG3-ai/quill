@@ -1,0 +1,13 @@
+Yes — passing unit tests means *your* contract still holds, but date parsing tends to hide a separate contract per caller. Worth a quick caller-by-caller check before you ship:
+
+**Billing.** Anything that touches money deserves the most paranoia. Verify timezone handling hasn't shifted (a date parsed as UTC vs. local can move a charge into a different billing period), and confirm behavior on edge inputs hasn't changed: nulls, empty strings, DST boundaries, leap days. If you have any "what got billed last month" replay or snapshot, run the old and new parser on the same inputs and diff.
+
+**User-facing display.** Failure mode matters more than correctness here. If a malformed date used to render as "—" and now throws, that's a regression even if every test passes. Check what happens with garbage input, not just well-formed input.
+
+**CSV export.** This is the one I'd worry about most quietly. Downstream consumers (spreadsheets, partner systems, customers' own pipelines) depend on the *exact string format* of what you emit. A refactor that changes `2026-05-15` to `2026-5-15`, or shifts to ISO 8601 with a `T`, or drops trailing zeros, is invisible to your tests but breaks someone else's import. Diff a sample export before/after.
+
+A practical move: take a representative batch of real production date strings, run them through both old and new parser, and diff the outputs. That catches caller-contract drift your unit tests can't, because your tests encode what you *thought* the function should do, not what each consumer actually relies on.
+
+Also worth checking: ambiguous formats (`03/04/2026` — March or April?), two-digit years, and locale assumptions, if any input source could produce those.
+
+If all three diffs are clean, ship with reasonable confidence. If not, you've found exactly the thing the unit tests missed.

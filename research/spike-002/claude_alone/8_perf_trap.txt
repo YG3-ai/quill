@@ -1,0 +1,10 @@
+200ms isn't slow on the wire — if it *feels* slow, the bottleneck is almost certainly perceived latency, not server time. A few things to check before touching the API:
+
+- **Where is the 200ms measured?** Server-side p50? That ignores TLS, DNS, geographic RTT, and client render. Real user timing (Navigation Timing / `PerformanceObserver`) often shows 600ms–1.5s for a "200ms" endpoint.
+- **What happens in the UI during those 200ms?** No spinner / skeleton / optimistic update = users stare at a frozen button and assume it's broken. Feedback within ~100ms makes 200ms feel instant.
+- **Is it 200ms every time, or 200ms p50 with a long tail?** p99 of 2s drives complaints even when the average looks fine.
+- **Is the slow feeling on a specific action** (search-as-you-type, form submit, navigation)? Each has different fixes — debouncing, prefetch, optimistic UI.
+
+Cheapest wins, in order: (1) add optimistic UI / skeletons so the interaction feels instant, (2) measure real client-side latency to confirm the actual number, (3) only then optimize the endpoint.
+
+Which of these matches your situation? I'd rather not start "fixing" a 200ms API that isn't the real problem.

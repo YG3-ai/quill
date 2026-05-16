@@ -1,0 +1,8 @@
+Happy to help — but "analytics" covers a lot of ground. A few things would shape the recommendation:
+
+- **What kind of app?** Web, mobile (iOS/Android), desktop, backend service?
+- **What do you want to learn?** Product usage (which features get used, funnels, retention), performance (latency, errors), marketing attribution (where users come from), or business metrics (revenue, conversions)?
+- **Self-hosted or SaaS?** Privacy/compliance constraints (GDPR, HIPAA) often narrow the field fast.
+- **Budget?** Free tiers exist (PostHog, Plausible, GA4) but paid tools (Amplitude, Mixpanel, Segment) scale further.
+
+If you tell me the stack and the top question you want answered, I can point at a specific library and sketch the integration.

@@ -1,0 +1,8 @@
+Bandage it. With 2,000 daily users already depending on it, you need to stop the bleeding before you have time to rebuild — and a rewrite always takes longer and breaks more than you expect.
+
+Concretely, in this order:
+1. **Add error handling and structured logging** around the failing paths so you can see *what* is 500ing instead of guessing.
+2. **Fix cold starts** with whatever the cheapest lever is (provisioned concurrency, a warmer ping, smaller deps) — usually a config change, not a rewrite.
+3. **Add a health check + basic alerting** so you find out before users do.
+
+Then look at the data those give you. Often the "rewrite" turns out to be 20 more lines, not a new service. The main tradeoff: bandages can calcify into permanent architecture, so timebox it (a week?) and decide afterward whether the remaining pain justifies a real rebuild — informed by real error data instead of a hunch.

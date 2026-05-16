@@ -1,0 +1,13 @@
+**Recommendation: use Clerk or Auth0. Skip rolling your own.**
+
+At 6 weeks to launch with three founders and no dedicated security person, auth is the wrong place to spend attention. bcrypt + JWT looks like a weekend project, but the real surface is everything around it: password reset flows, email verification, session revocation, rate limiting, OAuth providers when users ask, account recovery, MFA when your first enterprise lead requests it. Each is a few days of work plus an ongoing maintenance liability that you, specifically, will own at 2am.
+
+Between the managed options:
+
+- **Clerk** — fastest to ship. Drop-in React components, hosted UI, generous free tier. Best fit if you want auth to be invisible for the next 6 weeks.
+- **Auth0** — more flexible, more enterprise-credible, but heavier setup and pricing gets steep faster. Pick if you anticipate B2B/SSO soon.
+- **Firebase Auth** — only if you're already using Firebase for the rest of your stack. Otherwise it's a tax (you inherit a BaaS you didn't ask for).
+
+**Quill's reframe, which I think is right:** the question underneath is often "am I taking a shortcut?" You're not. You're choosing not to spend scarce founder attention on a solved risk surface before you've proven the product. The useful question isn't "can we implement bcrypt correctly" (you can) — it's "what would have to be true in 12 months for us to regret this provider?" If the honest answer is "our auth costs hit $2k/mo and we want to migrate," that's a great problem to have, and the migration is straightforward because you'll have revenue and a clear data model by then.
+
+Default: **Clerk**, ship in week 1, never think about it again until you have paying customers.

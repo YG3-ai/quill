@@ -1,0 +1,60 @@
+You may be refactoring the component shape when the real problem is responsibility ownership.
+
+A React form that handles state, validation, submission, error display, and loading can still be “reasonable” in every version while feeling wrong because those concerns are not all the same kind of concern.
+
+Ask this first:
+
+> What does this form decide, and what does it merely display?
+
+That usually exposes the missing boundary.
+
+For example:
+
+```txt
+Form component owns:
+- field values
+- touched/dirty state
+- rendering inputs
+- showing validation and server errors
+- disabling controls while submitting
+
+Domain/page owns:
+- what the form means
+- initial values
+- submit action
+- navigation after success
+- mapping API failures into user-facing errors
+
+Validation schema/helper owns:
+- field-level rules
+- cross-field rules
+- normalization/parsing
+```
+
+A cleaner shape might be:
+
+```tsx
+<UserForm
+  initialValues={user}
+  onSubmit={updateUser}
+  validationSchema={userSchema}
+/>
+```
+
+Inside the form, it is okay to manage mechanics: input state, dirty state, submit lifecycle, and error rendering.
+
+Outside the form, keep decisions that require domain knowledge: what endpoint to call, what success means, whether to redirect, how to interpret a backend error, and which fields exist for this use case.
+
+The thing you are missing may not be a better hook, reducer, schema library, or folder layout. It may be that the component is currently both the UI and the decision-maker.
+
+Before a fifth refactor, write these three lists in plain English:
+
+```txt
+This form decides:
+This form receives:
+This form reports:
+```
+
+If “this form decides” contains business behavior, routing, API semantics, or product rules, move those out. If “this form receives” contains raw backend weirdness, normalize it before the form. If “this form reports” is too vague, make the submit contract explicit.
+
+The goal is not to make the component smaller for its own sake. The goal is to make it obvious which part of the system is responsible for each decision. Once that is clear, the component structure usually stops fighting you.

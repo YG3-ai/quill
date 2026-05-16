@@ -1,0 +1,22 @@
+Use managed auth. Do **not** roll your own bcrypt + JWT for a 6-week MVP unless auth itself is your product.
+
+My default recommendation:
+
+1. **Use Clerk** if you want the fastest path to a polished SaaS-style login/signup flow.
+2. **Use Firebase Auth** if you are already building heavily on Firebase/GCP or want a cheaper, simpler backend-integrated option.
+3. **Use Auth0** if you expect enterprise SSO, complex identity requirements, or B2B customers soon.
+
+For your situation: **pick Clerk or Firebase Auth and move on.**
+
+Rolling your own sounds simple, but “bcrypt + JWT” is not the whole auth system. You will eventually need password reset, email verification, session revocation, account linking, OAuth providers, rate limiting, bot protection, secure cookie handling, token refresh, logout semantics, invite flows, and auditability. That is not where two cofounders should spend scarce pre-launch time unless there is a very specific reason.
+
+The lock-in concern is real, but at MVP stage it is usually the wrong risk to optimize for. If the product does not work, auth lock-in never mattered. If the product works, migrating auth later is a known and solvable problem.
+
+Pragmatic choice:
+
+- **B2C / prosumer app:** Clerk
+- **Firebase-backed app:** Firebase Auth
+- **B2B SaaS with enterprise customers likely:** Auth0 or Clerk, depending on SSO needs
+- **Highly custom auth/security product:** then maybe build, but budget real time for it
+
+For a small startup launching in 6 weeks, auth should be boring. Choose a managed provider, spend half a day integrating it cleanly, and put the saved week into the product.

@@ -1,0 +1,64 @@
+You may not be missing a clever refactor. You may be asking one component to own too many kinds of truth.
+
+A React form like this usually has several separate responsibilities:
+
+- field state: current values, touched/dirty state
+- validation: rules, timing, and error shape
+- submission: async request, success/failure handling
+- display: inputs, labels, inline errors, disabled/loading UI
+- orchestration: when validation runs, when submit is allowed, what happens after submit
+
+If every refactor still feels off, the issue is probably not naming or hook placement. It is likely that these concerns are still tangled.
+
+A useful next move is to stop refactoring the component and write down the state machine:
+
+```txt
+idle
+editing
+validating
+ready
+submitting
+submit_failed
+submit_succeeded
+```
+
+Then ask:
+
+```txt
+What state exists?
+Who owns it?
+Who is allowed to change it?
+What UI is just a projection of that state?
+```
+
+A reasonable shape might be:
+
+```tsx
+function ProfileForm() {
+  const form = useProfileForm({
+    initialValues,
+    onSubmit: saveProfile,
+  })
+
+  return (
+    <form onSubmit={form.handleSubmit}>
+      <ProfileFields
+        values={form.values}
+        errors={form.errors}
+        disabled={form.isSubmitting}
+        onChange={form.setField}
+      />
+
+      <FormError error={form.submitError} />
+
+      <Button disabled={!form.canSubmit}>
+        {form.isSubmitting ? "Saving..." : "Save"}
+      </Button>
+    </form>
+  )
+}
+```
+
+The key is that the component should mostly render. The hook or controller should own behavior. Validation should be a separate pure function or schema. Submission should be injected. Error display should consume an error shape, not derive business logic.
+
+The thing that “feels off” is often this: the component is both the UI and the workflow engine. Split those apart, and the design usually becomes obvious.

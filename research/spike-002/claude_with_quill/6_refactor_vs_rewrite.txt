@@ -1,0 +1,13 @@
+**Refactor in place — but not the whole file, and not as a separate project.**
+
+The schedule answers this for you. A from-scratch rewrite needs slack you don't have, and it competes with the very feature that's supposed to justify it. Two engineers will end up maintaining both versions until something slips. Worse, a rewrite resets the institutional memory that those 3 years of patches actually encode — half of them are probably load-bearing fixes for edge cases nobody remembers anymore.
+
+Concretely, I'd do this:
+
+1. **Pin behavior first.** Before touching anything, get characterization tests around the current file. Not aspirational tests — tests that lock in what it does today, weird corners included.
+2. **Let next quarter's feature be the forcing function.** Only refactor the seams the new feature actually touches. Extract those into something coherent, leave the rest alone, and explicitly name what you're *not* cleaning up so it doesn't haunt code review.
+3. **Name the scary parts out loud.** Worth asking the team: which region of this file is everyone afraid to touch during the upcoming work? Isolate that risk *before* the feature lands, not during. That's the single highest-leverage move and it's much cheaper than a rewrite.
+
+The honest thing to watch for: a clean-slate rewrite is often carrying emotional relief — the appeal of escaping ownership debt — that the schedule can't actually support. Refactor-in-place isn't resignation if you scope it tightly to the feature work; it's the version that ships.
+
+If, after the feature lands, two or three of those extracted seams have proven themselves and the remaining core is small and ugly, *then* a targeted rewrite of what's left is a real conversation — with evidence, not vibes.

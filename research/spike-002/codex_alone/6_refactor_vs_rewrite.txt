@@ -1,0 +1,22 @@
+Refactor in place.
+
+Given the facts you gave, a rewrite is the higher-risk option:
+
+- The file has 3 years of embedded behavior, probably including undocumented edge cases.
+- Six engineers have touched it, so nobody likely owns the full mental model.
+- The current team is small and has no schedule slack.
+- You are about to ship a major feature in the same area, which means churn and unknowns are already coming.
+
+A rewrite can be justified when you have clear boundaries, strong tests, a stable target behavior, and time to absorb surprises. You described almost the opposite environment.
+
+I’d handle it like this:
+
+1. Add characterization tests around the current behavior, especially the paths the next-quarter feature will depend on.
+2. Identify the worst seams inside the file: mixed responsibilities, repeated conditionals, unclear state mutation, side effects.
+3. Refactor incrementally while keeping behavior stable.
+4. Extract only when a responsibility has a clear name and boundary.
+5. Use the upcoming feature work to pay down the parts you must understand anyway.
+
+The practical rule: don’t rewrite the whole file because it is ugly. Refactor the parts you need to make the next feature safer.
+
+A rewrite may still be worth considering later, but only after you have tests, a clearer domain model, and enough team capacity to run old and new behavior side by side or migrate gradually. Right now, rewriting from scratch is likely to turn one known messy problem into several unknown schedule problems.

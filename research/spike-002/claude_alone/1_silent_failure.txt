@@ -1,0 +1,13 @@
+Yes — passing unit tests is necessary but not sufficient here. A few things worth checking before shipping:
+
+**1. Timezone & locale handling across the three consumers.** Billing probably wants UTC (or a fixed business timezone) for invoice date boundaries; user-facing display wants the *viewer's* local timezone; CSV export depends on who opens the file (Excel will silently reinterpret ambiguous formats like `03/04/2026`). If your refactor changed how the function resolves "no timezone specified," each consumer can break differently while all your unit tests pass with hardcoded inputs.
+
+**2. Test the inputs your tests probably don't cover.** Look specifically for: DST transition days, leap day, year boundaries, two-digit years, empty/null/whitespace, strings with trailing time components, and the ISO 8601 vs. RFC 2822 vs. locale formats your real data actually contains. Pull a sample of *production* date strings from each of the three call sites and run them through both the old and new function — diff the outputs. This is the single highest-value check.
+
+**3. Billing is the scary one.** A one-day shift on an invoice date can move revenue into the wrong period, trigger wrong proration, or affect tax jurisdiction. If billing is touched, I'd want a backfill/replay test against historical records showing old-fn and new-fn produce identical results on real data before shipping.
+
+**4. CSV export round-trip.** If the output format changed at all (even " " vs "T" separator, or trailing `Z`), downstream consumers parsing those CSVs may break silently. Check whether anything ingests these exports.
+
+**5. Ship it behind something reversible.** Feature flag, or at minimum a staged rollout, so you can revert without a re-deploy if billing or exports look off. Add logging on the function's input/output for a few days post-deploy so you can diff against expectations.
+
+Short version: unit tests prove the function does what you told it to do. They don't prove you told it the right thing for three different consumers with three different timezone semantics. Diff old-vs-new on real production inputs before shipping — that's the test that would actually have caught the bugs you're worried about.

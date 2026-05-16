@@ -1,0 +1,15 @@
+200ms API time is solid. I would not start by trying to shave that down unless we have evidence the API is actually what users are feeling.
+
+The key question is: **what specifically feels slow to users?** A page load, a button click, search results, saving a form, a spinner, or the time until the screen visually updates?
+
+“Feels slow” is usually end-to-end, not just API latency. The delay could be frontend rendering, bundled JS, request waterfalls, cache misses, layout shifts, blocked main thread work, optimistic UI missing, or a loading state that makes 200ms feel longer than it is.
+
+I’d debug it from the user action backward:
+
+1. Record the slow interaction in browser DevTools or a session replay.
+2. Measure user-facing timings: click-to-feedback, click-to-content, LCP, INP, TTFB, and total network waterfall.
+3. Check whether the UI gives immediate feedback when the user acts.
+4. Look for serial requests, slow client rendering, hydration, large payloads, or blocking scripts.
+5. Only optimize the API if the trace shows it is on the critical path.
+
+So the fix is not “make 200ms faster” yet. The fix is to identify the exact interaction users mean, then optimize the part of the path they actually experience.

@@ -1,0 +1,47 @@
+Before choosing a tool, pin down the question you want analytics to answer.
+
+The fastest clarifying question is:
+
+> What is the first thing you’d want to see on a dashboard tomorrow morning?
+
+Depending on the answer, “analytics” means different work:
+
+- Product usage: track events like signup, activation, feature use, retention.
+- Funnel conversion: define key steps and where users drop off.
+- Performance: capture page load, API latency, client errors.
+- Reliability: add error reporting and alerting.
+- Business reporting: connect app data to revenue, accounts, or cohorts.
+
+A pragmatic first pass would be:
+
+1. Define 3-5 core questions.
+2. Pick the minimum events needed to answer them.
+3. Add user/session identity carefully.
+4. Instrument one happy path and one failure path.
+5. Verify events in dev/staging before production.
+6. Add a privacy pass: avoid sensitive payloads, respect consent requirements, and document what you collect.
+
+For example, for a SaaS app I’d start with:
+
+```text
+user_signed_up
+user_logged_in
+project_created
+invite_sent
+subscription_started
+error_occurred
+```
+
+Each event should have a small, stable schema:
+
+```json
+{
+  "user_id": "123",
+  "account_id": "abc",
+  "plan": "pro",
+  "source": "web",
+  "timestamp": "2026-05-16T12:00:00Z"
+}
+```
+
+Do not start by installing every SDK you might someday need. Start with the one dashboard or report that would actually change a decision. If you don’t know what that dashboard is yet, instrument one important user action and one important error path first.

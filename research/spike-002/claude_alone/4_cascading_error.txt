@@ -1,0 +1,15 @@
+Triage in this order:
+
+1. **The rounding utility itself.** `git log -p` on the helper that changed — confirm the exact commit, what the old behavior was (ROUND_HALF_EVEN vs HALF_UP vs HALF_AWAY_FROM_ZERO), and when it shipped. That commit timestamp defines your contamination window.
+
+2. **Revert first, investigate second.** Banker's rounding is almost certainly what your finance system uses (it's the IEEE 754 default and the GAAP/IFRS convention for a reason — it's unbiased across large sums). Restore it before chasing downstream symptoms, otherwise every reconciliation you do is against a moving target.
+
+3. **Confirm the finance system's convention explicitly.** Don't assume — check their docs or run a few known-divergent values (e.g., 0.125, 2.675) through both systems. Whatever finance does is the contract; your code conforms to it, not the other way around.
+
+4. **Map the blast radius via callers, not dashboards.** `grep`/call-graph the rounding helper. Every caller that ran between the bad commit and the revert produced suspect output. The 12 dashboards are symptoms; the callers are the set you actually need to recompute.
+
+5. **Separate "wrong stored values" from "wrong displayed values."** Dashboards that round at render time fix themselves on revert. Payouts and invoices that *persisted* rounded amounts need backfill — query for rows written in the contamination window and recompute. The penny drift in payouts means money already moved, so this likely needs an adjusting entry, not just a code fix.
+
+6. **Add a regression test that pins the convention** (e.g., asserts `round(2.675, 2) == 2.68` or whatever your convention dictates) so the next AI suggestion can't silently flip it back.
+
+The finance-system disagreement is your highest-signal oracle here — drive the reconciliation from that diff, not from the dashboards.

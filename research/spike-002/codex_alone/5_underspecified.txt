@@ -1,0 +1,28 @@
+Good starting point. Before picking a tool, define what decisions the analytics should help you make.
+
+I’d start with:
+
+1. What do you need to learn?
+   Examples: activation, retention, feature usage, conversion, errors, churn signals.
+
+2. What events matter?
+   Track a small set first, like:
+   - `user_signed_up`
+   - `onboarding_completed`
+   - `project_created`
+   - `feature_used`
+   - `subscription_started`
+   - `subscription_canceled`
+
+3. What user properties are safe and useful?
+   Avoid collecting sensitive data unless you truly need it. Prefer IDs, plan type, signup date, role, and coarse metadata.
+
+4. What analytics product fits your needs?
+   - Product analytics: PostHog, Amplitude, Mixpanel
+   - Basic web analytics: Plausible, Fathom, Google Analytics
+   - Warehouse-first: Segment, RudderStack, custom events into your DB/warehouse
+
+5. How will you validate events?
+   Add a tracking plan, test events in development, and make sure naming is consistent.
+
+I’d recommend starting with a small event taxonomy and one analytics provider, then expanding only when you know which questions you cannot answer yet.

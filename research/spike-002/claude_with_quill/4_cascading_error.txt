@@ -1,0 +1,18 @@
+This is a money-trust incident, not just a bug — the goal isn't "find the rounding call," it's "stop further silent divergence and prove the blast radius before chasing 12 dashboard symptoms."
+
+**Look here, in this order:**
+
+1. **The rounding function itself.** Find the single helper that changed (or every call site if it was inlined). Capture the exact behavioral diff: `ROUND_HALF_EVEN` → `ROUND_HALF_UP` is a ~50% miss rate on `.5` cases, biased upward. Pin the diff and the commit/PR — you'll need it for finance.
+
+2. **The boundary with the finance system of record.** Of all the affected surfaces, this is the only one where divergence compounds and becomes a reconciliation problem. Trace: what writes amounts that finance later reads or compares against? Freeze or flag those paths first. Dashboards are read-only symptoms; invoicing and payouts are where the real liability lives.
+
+3. **Payouts.** Penny-level drift means real money already left (or didn't leave). Pull the affected payout batches since the change landed, recompute with banker's rounding, and produce a delta report per recipient. That report is what makes you whole — both with recipients and with finance.
+
+4. **Then dashboards.** Most likely they recompute from the same underlying figures, so fixing the helper + recomputing aggregates resolves them in one move. Don't fix them one by one.
+
+**Containment moves before fixing:**
+- Revert the rounding helper to banker's rounding now, on its own commit, with a test that pins the half-even behavior so this can't silently flip again.
+- Add a regression test using the actual divergent values you find in payouts — not synthetic ones.
+- Write a short note to finance with: when the change landed, what flows are affected, and your reconciliation plan. Getting ahead of it is worth more than a clean fix.
+
+The thing to give yourself (and your stakeholders) is evidence that you know the blast radius, not just that you patched the function.

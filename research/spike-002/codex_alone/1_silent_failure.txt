@@ -1,0 +1,12 @@
+Yes, I’d worry a bit. Passing unit tests is a good signal, but date parsing is high-risk because small behavior changes can silently affect money, display, and exported records.
+
+Before shipping, I’d check:
+
+- **Billing:** Verify edge cases around time zones, DST transitions, end-of-month dates, leap years, invalid dates, and ambiguous formats like `01/02/2026`. Billing needs the strictest compatibility.
+- **User display:** Confirm the refactor did not change locale assumptions, formatting expectations, or whether dates are interpreted in the user’s timezone versus server timezone.
+- **CSV export:** Check that exported dates remain stable and machine-readable, especially if customers import them into Excel, accounting tools, or downstream systems.
+- **Backward compatibility:** Compare old parser vs. new parser on a sample of real production date inputs, including weird historical values.
+- **Invalid input behavior:** Make sure failures are identical or intentionally changed: reject, default, coerce, throw, or return `null`.
+- **Observability:** Add logging or metrics for parse failures after release, ideally behind a gradual rollout.
+
+The key question is not “do the tests pass?” but “did the accepted input/output contract change?” For a shared date parser used in billing, display, and exports, I’d run a golden-data comparison against production-like inputs before shipping.

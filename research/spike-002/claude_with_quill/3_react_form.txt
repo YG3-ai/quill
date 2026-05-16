@@ -1,0 +1,12 @@
+You're not missing a pattern — you're missing a decision. Four reasonable structures all feel wrong because you're optimizing against a target you haven't named. Each concern (state, validation, submission, errors, loading) *could* be the spine of the component, and until you pick one, every split is defensible and every split feels arbitrary.
+
+The useful question isn't "how should this be decomposed?" It's: **when this form changes next, which change do you want to be cheap?**
+
+- If validation rules churn most → validation owns the shape; state and submit are plumbing around a schema.
+- If submit behavior varies (different endpoints, optimistic vs. pessimistic, multi-step) → the submission flow is the spine and fields are config.
+- If the field layout/copy changes constantly (PM-driven) → presentation is the spine and logic gets pushed into a hook.
+- If error UX is the differentiator → error state is a first-class object the rest of the component renders against.
+
+What you're calling "feels off" is probably decision fatigue dressed up as architecture work. You keep rearranging the same five responsibilities because none of them has been given permission to be the *primary* one. Pick the axis of change you most want to be painless six months from now, build around that, and let the other concerns be subordinate — even if that feels lopsided. Lopsided-on-purpose beats symmetric-and-vague.
+
+Practical next step: before refactor #5, write one sentence — "this component exists to make ___ easy to change" — and throw away any structure that doesn't serve it.

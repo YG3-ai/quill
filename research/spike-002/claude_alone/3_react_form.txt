@@ -1,0 +1,11 @@
+The fact that each version feels reasonable but still "off" usually means the problem isn't *how* you're organizing those five concerns — it's that you're trying to organize them together at all. Form state, validation, submission, error display, and loading states aren't one component's job; they're 2-3 different lifetimes mashed into one file, and every refactor just shuffles which seams hurt.
+
+A few diagnostic questions before you touch it a 5th time:
+
+1. **What changes together?** Validation rules and field state usually do. Submission and loading usually do. Error *display* often belongs with the field, but error *handling* belongs with submission. If your current split crosses those lines, every change touches multiple "layers."
+2. **Who owns truth?** If both the form and a parent (or a server response) can set the same field, you have two sources of truth and the component is permanently fighting itself. This is the most common cause of "feels off."
+3. **Are you reaching for a library because you should, or avoiding one because of pride?** React Hook Form / Formik / TanStack Form exist because hand-rolling this *correctly* is genuinely hard. If you've refactored 4 times, the honest answer might be "stop refactoring, adopt the abstraction someone already got right."
+
+My guess, without seeing the code: you're conflating *form state* (what the user typed) with *submission state* (what the server is doing). Separate those two — useReducer or a small state machine for submission, plain useState or a form lib for fields — and the rest usually falls into place.
+
+Want to paste the current version? I can give you a concrete read instead of a general one.

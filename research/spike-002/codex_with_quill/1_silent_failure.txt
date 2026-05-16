@@ -1,0 +1,22 @@
+Yes, but not because the refactor is suspect. Worry specifically about whether the passing tests cover the contracts this function has with its callers.
+
+Green unit tests prove the parser behaves for the examples you tested. They do not prove billing, display, and CSV still agree on what the parsed date means.
+
+Before shipping, I would check:
+
+1. **Output contract**
+   Did the refactor change the returned type, timezone, precision, null/error behavior, or formatting assumptions? Even small changes like “date at local midnight” vs “UTC midnight” can affect billing.
+
+2. **Billing cases**
+   Add or verify tests around boundary dates: month end, leap day, DST transitions, timezone offsets, inclusive/exclusive billing periods, and invalid or missing dates. Billing should probably test the parser through the billing code, not only directly.
+
+3. **User-facing display**
+   Confirm locale, timezone, and formatting expectations. A date that is correct internally can still display as the previous/next day for some users.
+
+4. **CSV export**
+   Check that exported dates are stable, unambiguous, and parseable by expected consumers. Avoid ambiguous formats like `03/04/2026` unless the contract explicitly requires them.
+
+5. **Real production samples**
+   Run the old and new parser against a representative slice of real date strings, compare outputs, and inspect differences. This is often more valuable than adding dozens of guessed edge cases.
+
+The short version: do not block shipping just because it is date code, but do verify the downstream contracts. Date parsing is dangerous when the parser is tested in isolation and the system silently changes meaning.

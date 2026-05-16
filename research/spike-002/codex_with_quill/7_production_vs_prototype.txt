@@ -1,0 +1,27 @@
+Don’t do a full rewrite first. Stabilize the thing people are already using, then decide whether to replace it.
+
+Your discomfort is real signal: if you no longer trust the code, that is part of the production problem. But with 2,000 daily users, a rewrite is also a risk: you can easily recreate the happy path and accidentally lose the weird behavior people depend on.
+
+I’d do this in order:
+
+1. **Bandage the live system immediately**
+   - Add top-level error handling so failures return controlled responses, not mystery 500s.
+   - Add logging around every failure path.
+   - Add basic timing logs for cold starts and slow requests.
+   - Add retries/timeouts only where they are clearly safe.
+   - Add a dead-simple health check or uptime monitor.
+
+2. **Protect the current behavior**
+   - Write a few characterization tests around what the 5-line MVP actually does today.
+   - Capture common inputs, outputs, edge cases, and known failure cases.
+   - This is not “proper testing theater”; it is insurance against breaking the thing users already rely on.
+
+3. **Then rewrite only the unstable parts**
+   - If cold starts are the main issue, fix deployment/runtime.
+   - If 500s come from one dependency, isolate that dependency.
+   - If error handling is missing, wrap the core flow.
+   - If the whole shape is wrong, then plan a rewrite behind the same interface.
+
+A useful decision question: **what is the smallest part that, if it broke tomorrow, would make you wish you had rewritten it already?** Start there.
+
+So my answer is: **stabilize now, instrument now, preserve behavior now, and rewrite selectively once you know what you’re replacing.** A production rewrite is justified when the current design prevents reliability, not merely because the code is embarrassingly small.

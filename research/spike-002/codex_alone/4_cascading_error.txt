@@ -1,0 +1,54 @@
+Look first at the **shared currency/money formatting and aggregation layer**, not the 12 dashboards.
+
+Specifically:
+
+1. Find the commit or helper that changed rounding from **banker’s rounding / round half to even** to **standard half-up rounding**.
+   Search for things like:
+   - `round`
+   - `toFixed`
+   - `Decimal`
+   - `ROUND_HALF_UP`
+   - `ROUND_HALF_EVEN`
+   - `bankers`
+   - `currency`
+   - `money`
+   - `invoice total`
+   - `payout amount`
+
+2. Check whether rounding is happening **too early**.
+   A common failure mode is:
+
+   ```text
+   round(line item) + round(line item) + round(line item)
+   ```
+
+   instead of:
+
+   ```text
+   round(sum(all exact line items))
+   ```
+
+   That will create penny drift across dashboards, payouts, and invoices.
+
+3. Compare the app’s rounding mode against the **finance system’s contract**.
+   If finance uses banker’s rounding, your app must match it exactly for:
+   - invoice totals
+   - tax calculations
+   - payouts
+   - refunds
+   - dashboard aggregates
+   - exported reports
+
+4. Add regression tests around known `.005` cases.
+   These are the danger cases:
+
+   ```text
+   1.005
+   2.225
+   10.235
+   100.125
+   ```
+
+   Test both individual amounts and summed totals.
+
+The immediate fix is probably to restore the finance-system rounding mode in the canonical money calculation path, then make dashboards consume those calculated values instead of re-rounding independently. The dashboards are symptoms; the source of truth is the money math boundary.

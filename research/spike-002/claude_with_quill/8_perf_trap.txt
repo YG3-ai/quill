@@ -1,0 +1,12 @@
+Here's my take, with input from a second perspective:
+
+**Don't optimize the endpoint yet — you don't have the right diagnosis.**
+
+200ms is fast for a server response, so "users feel it's slow" is telling you the metric and the experience have drifted apart. Jumping to "make the API faster" risks burning a sprint on something users won't notice. Before touching code, locate where the gap actually lives:
+
+1. **Measure what users measure, not what your server measures.** Your 200ms is likely server-side handler time. Users feel time-to-meaningful-paint: DNS + TLS + request + 200ms + response transfer + JS parsing + render + any chained calls. Instrument the full click-to-pixel path in the browser (Performance API, RUM tool, or a few `performance.now()` marks).
+2. **Look at tail latency, not the median.** A 200ms median with a 2s p99 feels slow because users remember the bad ones. Pull p95/p99 and check for retries, cold starts, or specific slow endpoints hiding inside a "fast" average.
+3. **Check perceived performance.** Is there a spinner? Does layout shift after the response? Does the UI block on this call when it could render optimistically or show skeletons? A 200ms call with no feedback often feels worse than an 800ms call with a progress indicator.
+4. **Ask the users what "slow" means.** "Slow to load the page," "slow to respond after I click submit," and "slow to feel done" are three different bugs with three different fixes.
+
+Once you know which of those is true, the fix is usually small and specific — and frequently not on the backend at all. What does the user flow around this 200ms call look like?

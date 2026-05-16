@@ -1,0 +1,24 @@
+Bandage it first, but do it deliberately.
+
+You have a live system with real users. A rewrite now is tempting because the flaws are visible, but it also replaces known problems with unknown ones. The right move is to stabilize the current MVP enough that you can make decisions from evidence instead of anxiety.
+
+Do this in order:
+
+1. Add observability
+   Log errors, latency, cold starts, request volume, and failure rates. You need to know what is actually failing before you redesign anything.
+
+2. Fix the top failure modes
+   Add basic error handling, timeouts, retries where appropriate, input validation, and clearer 500 responses. These are usually cheap and high leverage.
+
+3. Improve cold start pain if it is user-visible
+   Measure it first. If cold starts are a major cause of slow requests, address that specifically through warming, caching, moving initialization out of request paths, or choosing more suitable hosting.
+
+4. Add a minimal test harness
+   Cover the paths that 2,000 daily users rely on. Not a perfect suite. Just enough to stop breaking the core behavior while you patch.
+
+5. Decide rewrite vs. evolution after stabilization
+   If the current code is fundamentally blocking necessary behavior, security, scale, or maintainability, plan a replacement behind the existing interface. If not, evolve it incrementally.
+
+The key distinction: production readiness does not require a rewrite. It requires predictable behavior, diagnosable failures, and a path to change without breaking users.
+
+So: bandage the live system into a stable baseline now. Then carve out the parts that truly need replacement. A rewrite is justified only once you can point to specific constraints the existing MVP cannot survive.

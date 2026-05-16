@@ -1,0 +1,11 @@
+200ms server time is only one slice of the user’s wait. “Feels slow” usually means the end-to-end interaction is slow: DNS/TLS, network latency, redirects, frontend bundle work, render blocking, client-side data waterfalls, loading states, or repeated calls.
+
+I’d start by measuring the full path before changing code:
+
+1. Capture browser timings: TTFB, FCP, LCP, INP, total request duration.
+2. Check whether the UI waits on multiple serial API calls.
+3. Compare cold vs warm cache, mobile vs desktop, and slow 4G vs broadband.
+4. Add tracing from click/tap to rendered UI state.
+5. Review loading UX: skeletons, optimistic updates, pagination, prefetching, and caching.
+
+If the API really is 200ms consistently, the fix may be frontend orchestration or perceived performance rather than backend latency. Send me a trace, waterfall, or screen recording and I can pinpoint where the extra delay is coming from.

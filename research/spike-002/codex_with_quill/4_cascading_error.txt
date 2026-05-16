@@ -1,0 +1,43 @@
+Look first at the **money boundary where rounding becomes durable or external**.
+
+Specifically, find the code path where a calculated amount is converted into:
+
+- a persisted invoice/report/payout amount
+- an API payload sent to finance/payment systems
+- a dashboard aggregate stored or cached for reuse
+- a formatted currency value that later gets reused as data
+
+That is the highest-leverage place because the bug is not merely “display rounding.” It is a contract mismatch: your system used bankers rounding, another suggestion changed it to standard half-up rounding, and now persisted/transmitted money no longer reconciles with finance.
+
+Your immediate order of operations:
+
+1. **Contain the damage**
+   Revert the rounding mode at the shared currency/money boundary, preferably behind a feature flag or config switch. Do not hunt through 12 dashboards first. They are probably symptoms.
+
+2. **Find the rounding primitive**
+   Search for currency helpers and decimal quantization logic:
+   - `round(`
+   - `quantize`
+   - `ROUND_HALF_UP`
+   - `ROUND_HALF_EVEN`
+   - `BigDecimal`
+   - `setScale`
+   - `toFixed`
+   - `Math.round`
+   - `money`
+   - `currency`
+   - `invoice`
+   - `payout`
+
+   You are looking for a central helper that changed from bankers rounding / half-even to standard / half-up.
+
+3. **Check persisted and outbound amounts**
+   Prioritize tables, jobs, and integrations that write invoice lines, payout lines, ledger entries, or finance-system sync payloads. Dashboard totals matter, but payouts and invoices create external obligations.
+
+4. **Reconcile by transaction window**
+   Build a dated list of affected records from the first deployment of the rounding change through the fix. Compare old-mode vs new-mode results per line item, not only totals. Penny differences usually come from line-level rounding versus aggregate rounding.
+
+5. **Notify outside engineering**
+   Finance needs to know before engineering silently “fixes” it. The code patch and the trust repair are separate tracks. You need a paper trail of affected invoices, payouts, dashboards, and corrected amounts.
+
+The first file I would open is not a dashboard. It is the shared currency/decimal helper or the service that finalizes invoice and payout line amounts. If there is no single helper, that is likely part of the incident: rounding policy should be centralized and tested as a financial invariant.

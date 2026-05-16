@@ -1,0 +1,15 @@
+I would not choose “rewrite from scratch” as the default here.
+
+The rewrite impulse is understandable. An 800-line file with three years of patches probably feels like inherited debt, and the team is likely tired of paying the comprehension tax every time they touch it. But with four engineers, no schedule slack, and a major feature landing in the same area next quarter, a rewrite is a second project disguised as cleanup. It creates new unknowns exactly when you need fewer of them.
+
+I’d take a constrained refactor-in-place approach:
+
+1. Add characterization tests around the current behavior before moving code.
+2. Identify the seams the next-quarter feature will need.
+3. Extract only those seams first: pure functions, smaller modules, adapters, or domain-specific helpers.
+4. Keep the public behavior stable while making the upcoming feature easier to add.
+5. Track the remaining cleanup as follow-on work, not as a prerequisite for shipping.
+
+The only reason I’d seriously consider a rewrite is if the current file blocks the feature structurally: no reliable way to test it, impossible state coupling, performance constraints that cannot be fixed locally, or a domain model so wrong that every new change compounds the damage. Even then, I would prefer a strangler-style replacement behind the same interface over a big-bang rewrite.
+
+So the answer is: **refactor in place, but not as vague cleanup. Refactor with a target.** Use the upcoming feature to define the boundaries worth extracting, and treat the desire to rewrite as a signal about where the code is most painful, not as automatic permission to replace the whole thing.
