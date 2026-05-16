@@ -62,6 +62,56 @@ Translate jargon entirely. Examples:
 The developer is smart but doesn't know the vocabulary. Make every question something they can decisively answer based on what they actually want for their users."""
 
 
+DEFAULT_MOSAIC_PLANNER_PROMPT = """You are decomposing a software task into a mosaic of slices, where each slice is owned by a different AI agent based on which agent's voice fits best.
+
+The task: "{task}"
+
+Your job: produce 2-4 slices. For each slice, specify:
+- A name (snake_case, e.g. "data_model", "ux_copy", "tests")
+- A description of what the slice contains
+- An assigned voice (one of: codex, claude)
+- A rationale for why that voice fits this slice
+
+Voice profiles:
+- **Codex** (gpt-5-codex via codex CLI): precision, edge cases, file:line citations, structural decomposition, rigorous tests, schema design. Best for: data models, API design, test suites, performance analysis, code that needs to be obviously correct.
+- **Claude** (claude-sonnet-4-6 via claude CLI): humanistic framing, metaphor, anticipates user feelings, micro-copy with warmth, storytelling. Best for: UX flow, error messages, documentation, risk narratives, anything that requires reading between the lines of what a user might feel.
+
+Decompose by ASPECT, not by FILE. A good split is "backend API + frontend UX + tests + docs" — bad splits are "user.py + post.py + auth.py."
+
+If the task has fewer than 2 substantive aspects, return a single slice and note in the rationale that mosaic mode may not be the right fit.
+
+Return JSON only, no preamble or commentary:
+{"plan": [{"slice": "...", "description": "...", "voice": "...", "rationale": "..."}, ...]}"""
+
+
+DEFAULT_MOSAIC_REVIEWER_PROMPT = """You are cross-reviewing a mosaic of work produced by multiple AI agents. Your job is to flag INCONSISTENCIES between slices, not to smooth them stylistically.
+
+**DO NOT homogenize voice.** Each slice is intentionally written in a different voice — this is the feature, not a bug. Tone differences, structural differences, and stylistic differences are GOOD. Leave them alone.
+
+DO flag:
+- **Factual inconsistencies**: one slice says X about the data, another says Y
+- **Technical inconsistencies**: the API exposes a field the UX doesn't handle; the tests assume behavior the implementation doesn't have; an error code referenced in one slice isn't defined in another
+- **Narrative inconsistencies**: the user-facing copy describes something different from what the implementation actually does
+
+The original task: "{task}"
+
+The slices (each with its assigned voice):
+{slices_with_voices}
+
+Return JSON only, no preamble:
+{{"flags": [
+  {{
+    "location": "<slice_name_a>/<slice_name_b>",
+    "type": "factual|technical|narrative",
+    "severity": "low|med|high",
+    "note": "...",
+    "suggested_resolution": "..."
+  }}
+]}}
+
+If no inconsistencies found: {{"flags": []}}."""
+
+
 def consult_prompt() -> str:
     return os.environ.get("AI_SYSTEM_PROMPT_CONSULT", DEFAULT_CONSULT_PROMPT)
 
@@ -72,3 +122,18 @@ def perspective_prompt() -> str:
 
 def assumptions_prompt() -> str:
     return os.environ.get("AI_SYSTEM_PROMPT_ASSUMPTIONS", DEFAULT_ASSUMPTIONS_PROMPT)
+
+
+def mosaic_planner_prompt(task: str) -> str:
+    """The planner prompt for mosaic mode. Takes the task; returns a prompt
+    that asks the planner to decompose into voice-assigned slices."""
+    template = os.environ.get("AI_SYSTEM_PROMPT_MOSAIC_PLANNER", DEFAULT_MOSAIC_PLANNER_PROMPT)
+    return template.replace("{task}", task)
+
+
+def mosaic_reviewer_prompt(task: str, slices_with_voices: str) -> str:
+    """The reviewer prompt for mosaic mode. Takes the original task plus
+    the assembled slices; returns a prompt asking the reviewer to flag
+    inconsistencies without homogenizing voice."""
+    template = os.environ.get("AI_SYSTEM_PROMPT_MOSAIC_REVIEWER", DEFAULT_MOSAIC_REVIEWER_PROMPT)
+    return template.replace("{task}", task).replace("{slices_with_voices}", slices_with_voices)

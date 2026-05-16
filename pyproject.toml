@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quill-mcp"
-version = "0.1.1"
+version = "0.2.0"
 description = "A free open-source thinking partner for coding agents — mediates dialogue between Claude Code, Codex CLI, Cursor, Cline, and more via MCP."
 readme = "README.md"
 requires-python = ">=3.10"

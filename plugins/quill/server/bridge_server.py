@@ -1683,6 +1683,47 @@ async def assumptions(request: Request):
     )
 
 
+@app.post("/mosaic")
+async def mosaic(request: Request):
+    """
+    Developer-initiated mosaic mode. The developer's task is decomposed into
+    2-4 voice-assigned slices, executed in parallel with independent priors
+    preserved, cross-reviewed for consistency without homogenizing voice,
+    and returned as a structured response.
+
+    See MOSAIC_DESIGN.md for the full design. Tagline: two minds are better
+    than one.
+
+    Body: { "task": "<developer's multi-aspect task description>" }
+    Returns: the full mosaic result dict (task, plan, slices,
+    cross_review_flags, voice_map, assembled_response). Or
+    { "error": "..." } on failure.
+    """
+    from quill_mcp.mosaic import run_mosaic
+
+    start = time.time()
+    try:
+        body = await request.json()
+    except Exception as e:
+        log.warning(f"Could not parse JSON for /mosaic: {e}")
+        body = {}
+    task = (body.get("task") or "").strip()
+    if not task:
+        return {"error": "no task provided"}
+
+    log.info(f"/mosaic: task received ({len(task)} chars)")
+    try:
+        result = await run_mosaic(task)
+    except Exception as e:
+        log.error(f"/mosaic: run_mosaic raised {type(e).__name__}: {e}")
+        return {"error": f"mosaic run failed: {e}", "task": task}
+    elapsed = time.time() - start
+    n_slices = len(result.get("slices") or [])
+    n_flags = len(result.get("cross_review_flags") or [])
+    log.info(f"/mosaic: completed in {elapsed:.1f}s ({n_slices} slices, {n_flags} flags)")
+    return result
+
+
 async def _single_call_endpoint(request, *, toggle_key, log_label, advisor_fn, disabled_msg):
     """Shared route handler for the /consult and /perspective sibling endpoints."""
     start = time.time()

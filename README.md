@@ -14,8 +14,7 @@ installed and relays their conversation.
 Built by [YG3](https://yg3.ai). See
 [RESEARCH.md](RESEARCH.md) for the research direction.
 
-Three thinking-partner skills available in any agentic CLI Quill is
-installed in:
+Four skills available in any agentic CLI Quill is installed in:
 
 - **`consult`** — for stuck/frustrated moments. Quill's advisor reframes
   what's actually going on.
@@ -24,6 +23,12 @@ installed in:
 - **`assumptions`** — for "what choices is the AI making that I don't
   understand?" Translates technical assumptions into plain-language
   yes/no questions.
+- **`mosaic`** *(new in v0.2)* — for multi-aspect tasks. Decomposes the
+  task into 2-4 voice-assigned slices, runs them in parallel with
+  independent priors preserved, cross-reviews for consistency without
+  homogenizing voice. The seams between agents stay visible *on
+  purpose* — preserved texture diversity is the value. See
+  [MOSAIC_DESIGN.md](MOSAIC_DESIGN.md) for the design rationale.
 
 In Claude Code specifically, you also get safety hooks (gatekeeper for
 risky shell commands) and pre-push quality scans (secrets, debug
@@ -256,12 +261,11 @@ quill/
 
 ## Status
 
-**v0.1.0 — first PyPI release.** `pip install quill-mcp` installs the
-core thinking-partner MCP server. `pip install "quill-mcp[plugin]"`
-adds the Claude Code FastAPI bridge extras. Both advisor backends
-(Codex CLI, Claude CLI) and the API backend are validated through
-both surfaces (FastAPI bridge for Claude Code; MCP server for Codex
-CLI / Cursor / Cline / Continue / etc.). See
+**v0.2.0 — mosaic mode shipped.** `pip install quill-mcp` installs the
+core MCP server (now with `quill_mosaic` alongside consult / perspective
+/ assumptions). `pip install "quill-mcp[plugin]"` adds the Claude Code
+FastAPI bridge extras. Both advisor backends (Codex CLI, Claude CLI)
+and the API backend are validated through both surfaces. See
 [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for what's next.
 
 ## Local development (for contributors)

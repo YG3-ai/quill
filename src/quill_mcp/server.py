@@ -104,6 +104,41 @@ async def quill_assumptions(framing: str) -> str:
     return await _ask(assumptions_prompt(), framing)
 
 
+@mcp.tool()
+async def quill_mosaic(task: str) -> str:
+    """Produce a mosaic response to a multi-aspect task — two minds, not one.
+
+    Decomposes the task into 2-4 voice-assigned slices, executes them in
+    parallel with independent priors preserved (no agent sees the others'
+    WIP), cross-reviews for consistency without homogenizing voice, and
+    returns a structured response that *surfaces* rather than smooths the
+    seams between agents.
+
+    Best for multi-texture work where different aspects benefit from
+    different voices: code + docs + UX + tests, or backend + frontend +
+    migration plan, or methodology + findings + caveats. NOT for
+    single-aspect tasks — the overhead isn't worth it.
+
+    Cost: ~4-6x a single quill_consult call; wall-clock 60-180s.
+
+    Requires both `codex` and `claude` CLIs installed and logged in
+    (free with ChatGPT Plus + Claude Pro subscriptions).
+
+    Returns the full structured response as JSON (task, plan, slices,
+    cross_review_flags, voice_map, assembled_response). Surface the
+    `assembled_response` field to the developer and treat the rest as
+    metadata they can drill into if curious.
+    """
+    import json as _json
+    from .mosaic import run_mosaic
+
+    task = (task or "").strip()
+    if not task:
+        return "Quill mosaic needs a task description from you."
+    result = await run_mosaic(task)
+    return _json.dumps(result, indent=2, ensure_ascii=False)
+
+
 def run() -> None:
     """Console-script entry point. `quill-mcp` runs this."""
     mcp.run(transport="stdio")

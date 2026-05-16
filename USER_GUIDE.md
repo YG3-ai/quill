@@ -28,7 +28,7 @@ The first two rows are the dual-agent pitch. Both are validated end-to-end.
 
 ## Skills
 
-Three thinking-partner skills, available everywhere Quill is installed:
+Four skills, available everywhere Quill is installed:
 
 - **`consult`** — for stuck or frustrated moments. The advisor reframes
   what's actually going on (humanistic, not procedural).
@@ -37,12 +37,25 @@ Three thinking-partner skills, available everywhere Quill is installed:
 - **`assumptions`** — translates the technical choices the doer has been
   making silently into plain-language yes/no questions a non-technical
   developer can actually answer.
+- **`mosaic`** *(new in v0.2)* — for multi-aspect tasks. Decomposes the
+  task into 2-4 voice-assigned slices (e.g. data model + UX copy + tests
+  + migration plan), runs them in parallel via different agents (one
+  agent's voice per slice), cross-reviews for consistency *without
+  homogenizing voice*, returns a structured response that surfaces the
+  seams rather than smoothing them. Tagline: *two minds are better than
+  one.* See [MOSAIC_DESIGN.md](MOSAIC_DESIGN.md) for the rationale.
 
 In Claude Code: `/quill:consult <note>`, `/quill:perspective <note>`,
-`/quill:assumptions [note]`.
+`/quill:assumptions [note]`, `/quill:mosaic <task description>`.
 
 In MCP-aware agents: tool names are `quill_consult`, `quill_perspective`,
-`quill_assumptions`.
+`quill_assumptions`, `quill_mosaic`.
+
+> **Mosaic mode is slow on purpose** (~60-180s wall-clock vs ~2-5s for
+> the other skills) because it runs a planner + 2-4 parallel slice
+> executions + 2 parallel cross-reviews. It also requires both `codex`
+> and `claude` CLIs to be installed and logged in. Reach for it when
+> the task has multiple textures; skip it for single-aspect work.
 
 ---
 
