@@ -2,33 +2,85 @@
 
 # Quill — *ask another mind.*
 
-**Free, MIT-licensed open source. A working product *and* an active
-research project on coding-agent collaboration.**
+**Two AIs in conversation, mediated by Quill. We tested whether that
+beats one AI alone. Here's what we found.**
 
-Quill mediates dialogue between the AI doing the work and a second AI
-giving perspective. The headline: **if you have a Claude Pro and a Codex
-Pro subscription, you have a free dual-AI coding setup.** No API key
-required, no per-token cost — Quill shells out to whichever CLIs you have
-installed and relays their conversation.
+Free, MIT-licensed open source. Built by [YG3](https://yg3.ai).
 
-Built by [YG3](https://yg3.ai). See
-[RESEARCH.md](RESEARCH.md) for the research direction.
+---
+
+## What it's for
+
+You know how when you're stuck on a hard decision, asking *two* people
+who think differently is usually better than asking *one*? Even if they
+disagree — *especially* if they disagree, because the disagreement
+shows you what's actually hard about the choice.
+
+Quill is that, for coding. It puts two AIs in conversation: one does
+the work, the other gives perspective. You see what they agree on, what
+they disagree on, and what one spotted that the other missed.
+
+The pragmatic angle: **if you already have a Claude Pro and a ChatGPT
+Plus subscription, you already have access to two AIs. Quill lets them
+talk to each other for free** — no API key, no per-token cost, just
+your existing subscriptions.
+
+## Does it actually help?
+
+We tested it. Honestly — including the cases where it didn't.
+
+**When you ask a "help me think this through" question** — *should we
+rewrite our codebase in Rust? what did we miss before tomorrow's launch?
+our settings page has 12 toggles and users are confused, what do we
+do?* — two AIs in dialogue beats one AI alone. **4 out of 4 scenarios**
+we tested, with a neutral third AI (Gemini) judging blind. Average
+score: **~9.5/10** on dimensions like *"surfaced something one mind
+would have missed"* vs ~5-7/10 for a single AI.
+
+One scenario stands out: we asked *"we're launching a payments
+integration tomorrow, what did we miss?"* One of Quill's two AIs went
+and *actually looked at the codebase* — and noticed the payments
+integration didn't exist yet. The single AIs all just trusted the
+question and gave a generic launch checklist. **Two minds caught what
+one mind couldn't even see.**
+
+**When you ask a "just build this small thing" question** — design a
+simple CRUD endpoint, write a 200-word post — one AI is usually
+enough. Two AIs is overkill; the extra perspective shows up as noise,
+not signal. Our data showed this too: on artifact-production tasks,
+Quill's deepest "mosaic mode" actually *loses* to a single AI.
+
+So Quill isn't a universal upgrade. It's a tool with a sweet spot:
+**decisions where you'd genuinely want a second opinion.** Skip it for
+routine building work; reach for it when the question is the kind
+you'd ask a senior colleague over coffee.
+
+→ Full data + methodology + honest caveats:
+[research/spike-004/findings.md](research/spike-004/findings.md). The
+arc of how we got here — we tested it wrong first, fixed our approach,
+then re-ran — is in [research/spike-003/findings.md](research/spike-003/findings.md).
+The whole research direction lives in [RESEARCH.md](RESEARCH.md).
+
+---
+
+## What's inside
 
 Four skills available in any agentic CLI Quill is installed in:
 
-- **`consult`** — for stuck/frustrated moments. Quill's advisor reframes
-  what's actually going on.
-- **`perspective`** — for exploring/curious moments. Layers in a vantage
-  the doer hasn't taken.
-- **`assumptions`** — for "what choices is the AI making that I don't
-  understand?" Translates technical assumptions into plain-language
-  yes/no questions.
-- **`mosaic`** *(new in v0.2)* — for multi-aspect tasks. Decomposes the
-  task into 2-4 voice-assigned slices, runs them in parallel with
-  independent priors preserved, cross-reviews for consistency without
-  homogenizing voice. The seams between agents stay visible *on
-  purpose* — preserved texture diversity is the value. See
-  [MOSAIC_DESIGN.md](MOSAIC_DESIGN.md) for the design rationale.
+- **`consult`** — for stuck or frustrated moments. The second AI
+  reframes what's actually going on.
+- **`perspective`** — for exploring or curious moments. The second AI
+  layers in an angle the first hasn't taken.
+- **`assumptions`** — for *"what choices is the AI making that I don't
+  understand?"* The second AI translates technical assumptions into
+  plain-language yes/no questions you can actually answer.
+- **`mosaic`** *(new in v0.2)* — **the one the data showed wins most**.
+  For decisions under tension. Two AIs work on different parts of the
+  question in parallel (no peeking at each other's work), then review
+  each other's output for contradictions. You see both perspectives
+  AND the disagreements between them. Reach for this when you'd want
+  to think out loud with a senior colleague.
+  ([MOSAIC_DESIGN.md](MOSAIC_DESIGN.md) for the design rationale.)
 
 In Claude Code specifically, you also get safety hooks (gatekeeper for
 risky shell commands) and pre-push quality scans (secrets, debug
@@ -261,12 +313,14 @@ quill/
 
 ## Status
 
-**v0.2.0 — mosaic mode shipped.** `pip install quill-mcp` installs the
-core MCP server (now with `quill_mosaic` alongside consult / perspective
-/ assumptions). `pip install "quill-mcp[plugin]"` adds the Claude Code
-FastAPI bridge extras. Both advisor backends (Codex CLI, Claude CLI)
-and the API backend are validated through both surfaces. See
-[OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for what's next.
+**v0.2.1 — mosaic mode shipped + tested + planner robustness fix.**
+`pip install quill-mcp` installs the core MCP server (with all four
+skills). `pip install "quill-mcp[plugin]"` adds the Claude Code FastAPI
+bridge extras. Both CLI advisor backends (Codex, Claude) and the API
+backend are validated through both surfaces. Mosaic mode is empirically
+tested (4/4 wins on decisions-under-tension tasks per spike-004; see
+[research/](research/)). See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)
+for what's next.
 
 ## Local development (for contributors)
 
