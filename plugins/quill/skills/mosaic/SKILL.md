@@ -1,5 +1,5 @@
 ---
-description: Produce a mosaic response to a multi-aspect task — two minds, not one. Decomposes the task into voice-assigned slices, runs them in parallel with independent priors preserved, cross-reviews without homogenizing voice. Invoke as /quill:mosaic <task description>.
+description: Produce a mosaic response to a multi-aspect task — two heads, not one. Decomposes the task into voice-assigned slices, runs them in parallel with independent priors preserved, cross-reviews without homogenizing voice. Invoke as /quill:mosaic <task description>.
 ---
 
 The developer just typed `/quill:mosaic` — they want a *mosaic* response
@@ -10,7 +10,7 @@ relay one-shot perspectives. Mosaic produces structured *work*: 2-4
 slices written by different agents in their native voices, cross-
 reviewed for consistency, assembled with the seams visible on purpose.
 
-The thesis: two minds are better than one. The mosaic IS the value —
+The thesis: two heads are better than one. The mosaic IS the value —
 preserved texture diversity is the feature, not a bug.
 
 ## When mosaic mode fits

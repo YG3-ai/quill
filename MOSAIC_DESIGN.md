@@ -11,7 +11,7 @@ existing product surfaces, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Tagline + thesis
 
-**Aphorism (for adoption):** *"Two minds are better than one."*
+**Aphorism (for adoption):** *"Two heads are better than one."*
 
 **Thesis (for retention):** Uniformity-of-voice is a hidden cost of
 using a single AI agent for everything. When code, docs, and UX all

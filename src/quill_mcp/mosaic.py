@@ -10,7 +10,7 @@ agent for everything. Mosaic mode preserves productive friction —
 different agents own different aspects, and the seams between them
 stay visible because the visible-distinctness is itself the value.
 
-Tagline: "Two minds are better than one."
+Tagline: "Two heads are better than one."
 
 See MOSAIC_DESIGN.md in the repo root for the full design rationale.
 """

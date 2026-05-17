@@ -1691,7 +1691,7 @@ async def mosaic(request: Request):
     preserved, cross-reviewed for consistency without homogenizing voice,
     and returned as a structured response.
 
-    See MOSAIC_DESIGN.md for the full design. Tagline: two minds are better
+    See MOSAIC_DESIGN.md for the full design. Tagline: two heads are better
     than one.
 
     Body: { "task": "<developer's multi-aspect task description>" }

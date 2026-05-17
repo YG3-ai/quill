@@ -106,7 +106,7 @@ async def quill_assumptions(framing: str) -> str:
 
 @mcp.tool()
 async def quill_mosaic(task: str) -> str:
-    """Produce a mosaic response to a multi-aspect task — two minds, not one.
+    """Produce a mosaic response to a multi-aspect task — two heads, not one.
 
     Decomposes the task into 2-4 voice-assigned slices, executes them in
     parallel with independent priors preserved (no agent sees the others'

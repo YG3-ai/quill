@@ -42,7 +42,7 @@ Four skills, available everywhere Quill is installed:
   + migration plan), runs them in parallel via different agents (one
   agent's voice per slice), cross-reviews for consistency *without
   homogenizing voice*, returns a structured response that surfaces the
-  seams rather than smoothing them. Tagline: *two minds are better than
+  seams rather than smoothing them. Tagline: *two heads are better than
   one.* See [MOSAIC_DESIGN.md](MOSAIC_DESIGN.md) for the rationale.
 
 In Claude Code: `/quill:consult <note>`, `/quill:perspective <note>`,

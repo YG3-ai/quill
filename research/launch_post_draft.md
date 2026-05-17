@@ -74,7 +74,7 @@ integration we were asking about *didn't exist in the codebase yet*.
 
 The developer's question — taken at face value by every single AI —
 turned out to contain a load-bearing assumption that didn't hold. **Two
-minds caught what one mind couldn't even see.** That's the moment that
+heads caught what one head couldn't even see.** That's the moment that
 made us run the experiment seriously.
 
 ---
@@ -224,6 +224,6 @@ are exactly what we need to hear.
 —
 
 *Built by [Jacqueline Carter, Sam Knox, and Partha Unnava](https://github.com/YG3-ai/quill)
-at [YG3](https://yg3.ai). The aphorism is older than us — "two minds
+at [YG3](https://yg3.ai). The aphorism is older than us — "two heads
 are better than one" — but the data confirming it for AI coding
 agents, as far as we know, is new.*

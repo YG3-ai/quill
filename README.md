@@ -1,6 +1,6 @@
-![Quill — ask another mind.](imgs/quill_banner_readme.png)
+![Quill — two heads are better than one.](imgs/quill_banner_readme.png)
 
-# Quill — *ask another mind.*
+# Quill — *two heads are better than one.*
 
 **Two AIs in conversation, mediated by Quill. We tested whether that
 beats one AI alone. Here's what we found.**
@@ -41,8 +41,8 @@ One scenario stands out: we asked *"we're launching a payments
 integration tomorrow, what did we miss?"* One of Quill's two AIs went
 and *actually looked at the codebase* — and noticed the payments
 integration didn't exist yet. The single AIs all just trusted the
-question and gave a generic launch checklist. **Two minds caught what
-one mind couldn't even see.**
+question and gave a generic launch checklist. **Two heads caught what
+one head couldn't even see.**
 
 **When you ask a "just build this small thing" question** — design a
 simple CRUD endpoint, write a 200-word post — one AI is usually
