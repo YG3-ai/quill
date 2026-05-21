@@ -246,6 +246,45 @@ and override the args via a wrapper script pointed at by `CODEX_BIN`.
 
 ---
 
+## Local development
+
+To work on Quill itself, install editable from your clone:
+
+```bash
+git clone https://github.com/YG3-ai/quill
+cd quill
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[plugin]"   # editable install, both core + plugin extras
+```
+
+Then to run the MCP server (from any directory):
+
+```bash
+ADVISOR_BACKEND=codex_cli quill-mcp
+```
+
+Or to run the Claude Code FastAPI bridge:
+
+```bash
+cd plugins/quill/server
+cp .env.example .env  # set ADVISOR_BACKEND
+ADVISOR_BACKEND=codex_cli python bridge_server.py
+```
+
+To install the plugin from a local clone instead of from the GitHub
+marketplace (useful for testing plugin changes):
+
+```
+/plugin marketplace add /absolute/path/to/your/quill/clone
+/plugin install quill@yg3
+```
+
+Check `plugins/quill/server/quill.log` for the server startup line. To
+test the welcome flow again on a dev machine: `rm ~/.quill/.welcomed`.
+
+---
+
 ## Free, with a tip jar
 
 Quill is free. We built it because the team uses it daily.
