@@ -1,4 +1,5 @@
 ---
+name: consult
 description: Pause and reframe the current situation with Quill. For frustrated, stuck, or confused moments. Invoke as /quill:consult <note>.
 ---
 
@@ -32,7 +33,7 @@ msg = sys.argv[1]
 payload = json.dumps({'message': msg}).encode()
 req = urllib.request.Request('http://127.0.0.1:9000/consult', data=payload, headers={'Content-Type': 'application/json'})
 try:
-    with urllib.request.urlopen(req, timeout=60) as r:
+    with urllib.request.urlopen(req, timeout=180) as r:
         data = json.loads(r.read())
     if data.get('welcome'):
         print('=== WELCOME ===')

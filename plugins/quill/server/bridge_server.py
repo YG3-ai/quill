@@ -197,20 +197,29 @@ GATEKEEPER_TOOLS = {"Bash"}
 # to) cost a few seconds. False negatives (letting something dangerous
 # through) can cost data, credentials, or production. So lean inclusive.
 DANGEROUS_BASH_PATTERNS = [
-    # Destructive removals
+    # Destructive removals (Unix)
     (re.compile(r"\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)\b"), "rm -rf"),
     (re.compile(r"\brm\s+.*(/etc|/usr|/var|/opt|/System|/Library|\$HOME|~/)\b"), "rm in system path"),
     (re.compile(r"\bdd\s+if=.+\s+of=/dev/"), "dd to device"),
     (re.compile(r":\(\)\s*\{.*\|.*\&\s*\}\s*;"), "fork bomb"),
-    # Privilege / system mutation
+    # Destructive removals (PowerShell)
+    (re.compile(r"\bRemove-Item\b.*-Recurse.*-Force|\bRemove-Item\b.*-Force.*-Recurse", re.IGNORECASE), "Remove-Item -Recurse -Force"),
+    (re.compile(r"\bRemove-Item\b.*(C:\\\\Windows|C:\\\\System32|C:\\\\Program Files)", re.IGNORECASE), "Remove-Item in system path"),
+    (re.compile(r"\bri\b.*-Recurse.*-Force|\bri\b.*-Force.*-Recurse", re.IGNORECASE), "ri -Recurse -Force (Remove-Item alias)"),
+    # Privilege / system mutation (Unix)
     (re.compile(r"\bsudo\b"), "sudo"),
     (re.compile(r"\bsu\s+(-|root|[a-z])"), "su to other user"),
     (re.compile(r"\bchmod\s+(-[a-zA-Z]*\s+)?[0-7]?777\b"), "chmod 777"),
     (re.compile(r"\bchown\s+(-[a-zA-Z]*\s+)?root"), "chown to root"),
-    # Pipes to shell from network (curl|sh, wget|bash, etc.)
-    # Note: /bin/[a-z]*sh covers /bin/sh as well as /bin/bash, /bin/zsh, etc.
+    # Privilege escalation (PowerShell)
+    (re.compile(r"\bStart-Process\b.*-Verb\s+RunAs", re.IGNORECASE), "Start-Process -Verb RunAs (elevation)"),
+    (re.compile(r"\bicacls\b.*\/grant.*Everyone", re.IGNORECASE), "icacls grant Everyone (chmod 777 equivalent)"),
+    # Pipes to shell from network (Unix)
     (re.compile(r"(curl|wget|fetch)\b[^|]*\|\s*(sh|bash|zsh|fish|/bin/[a-z]*sh)\b"), "network pipe to shell"),
     (re.compile(r"\beval\s*\(?\$\("), "eval of command substitution"),
+    # Pipes to shell from network (PowerShell — iex(iwr ...) pattern)
+    (re.compile(r"\bInvoke-Expression\b|\biex\b", re.IGNORECASE), "Invoke-Expression (arbitrary code execution)"),
+    (re.compile(r"\bInvoke-WebRequest\b.*\|\s*(Invoke-Expression|iex)\b|\biwr\b.*\|\s*(Invoke-Expression|iex)\b", re.IGNORECASE), "iwr | iex (network pipe to shell)"),
     # Credential / secret paths
     (re.compile(r"(\.ssh|\.aws|\.gnupg|\.config/gh|\.netrc|\.pgpass|id_[rd]sa|credentials)\b"), "credential path access"),
     # Git operations that ship code or rewrite history
@@ -229,10 +238,12 @@ DANGEROUS_BASH_PATTERNS = [
     # Skipping safety controls
     (re.compile(r"\bgit\s+commit\s+.*--no-verify\b"), "git commit --no-verify"),
     (re.compile(r"\b--dangerously-skip-permissions\b"), "--dangerously-skip-permissions"),
-    # Writes to sensitive files
+    # Writes to sensitive files (Unix)
     (re.compile(r"(>{1,2}|tee)\s+/etc/"), "write to /etc"),
     (re.compile(r"(>{1,2}|tee)\s+/(usr|var|opt|System)/"), "write to system path"),
     (re.compile(r"(>{1,2}|tee)\s+\.env(\s|$|;)"), "overwrite .env"),
+    # Writes to sensitive files (PowerShell)
+    (re.compile(r"\b(Set-Content|Out-File|Add-Content)\b.*(C:\\\\Windows|C:\\\\System32)", re.IGNORECASE), "PowerShell write to system path"),
 ]
 
 
@@ -251,8 +262,12 @@ MAX_PUSH_DENIALS = _int_env("MAX_PUSH_DENIALS", 2, minimum=1, maximum=10)
 
 # In-memory counter of consecutive push denials per project (cwd).
 # Resets on success (clean push) or after a wave-through. Ephemeral by design —
-# bridge restart wipes it, which is fine; counter only matters within a session
-# of attempts.
+# bridge restart wipes it, which is intentional: a developer stuck in a denial
+# loop can always restart the bridge to get a fresh counter. The counter doesn't
+# distinguish between "same issues persist" and "new issues appeared" — it just
+# counts attempts. Known limitation: a persistent secret that survives two
+# attempts will be waved through on the third. Pre-push checks still surface it
+# as context so the developer sees it; they just don't get blocked.
 _push_denial_counter: dict[str, int] = {}
 
 # ── Runtime Toggles ──────────────────────────────────────────────────────────
@@ -416,12 +431,13 @@ advisor: Advisor | None = None
 async def lifespan(app: FastAPI):
     global advisor
     advisor = build_advisor()
-    log.info(f"Bridge started — advisor: {advisor.description}")
+    log.info(f"Quill Bridge started — advisor: {advisor.description}")
+    log.info(f"Dashboard → http://127.0.0.1:{BRIDGE_PORT}/dashboard")
     yield
     await advisor.aclose()
 
 app = FastAPI(
-    title="Claude Code AI Advisor Bridge",
+    title="Quill Bridge",
     lifespan=lifespan,
     docs_url=None,    # we use /docs for our own embedded markdown viewer
     redoc_url=None,
@@ -1002,7 +1018,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Bridges</title>
+  <title>Quill Bridge</title>
   <style>
     :root {
       --bg: #0e0e13;
@@ -1156,7 +1172,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 <body>
   <header>
     <span class="dot" id="dot"></span>
-    <img src="/bridges.png" alt="Bridges" class="logo">
+    <img src="/quill-logo.png" alt="Quill Bridge" class="logo">
     <span class="last" id="last">connecting…</span>
   </header>
 
@@ -1190,7 +1206,6 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
   <footer>
     <span>Refreshes every 3s</span>
-    <span><a href="/docs">docs</a> · <a href="https://github.com/jacqueline-1929/BRIDGES" target="_blank">github</a></span>
   </footer>
 
   <script>
@@ -1348,7 +1363,7 @@ DOCS_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Bridges · Docs</title>
+  <title>Quill Bridge · Docs</title>
   <style>
     :root {
       --bg: #0e0e13;
@@ -1431,7 +1446,7 @@ DOCS_HTML = """<!DOCTYPE html>
 </head>
 <body>
   <nav>
-    <h1><a href="/dashboard"><span class="back-arrow">←</span> <img src="/bridges.png" alt="Bridges" class="logo-small"></a></h1>
+    <h1><a href="/dashboard"><span class="back-arrow">←</span> <img src="/quill-logo.png" alt="Quill Bridge" class="logo-small"></a></h1>
     <div class="nav-section">Docs</div>
     <ul id="nav-list"></ul>
   </nav>
@@ -1544,13 +1559,13 @@ async def dashboard():
     return DASHBOARD_HTML
 
 
-LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridges.png")
+LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "quill_logo.png")
 
 
-@app.get("/bridges.png")
+@app.get("/quill-logo.png")
 async def logo():
     if not os.path.exists(LOGO_PATH):
-        raise HTTPException(status_code=404, detail="bridges.png not found")
+        raise HTTPException(status_code=404, detail="quill_logo.png not found")
     return FileResponse(LOGO_PATH, media_type="image/png")
 
 

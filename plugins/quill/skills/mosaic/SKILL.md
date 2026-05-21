@@ -1,4 +1,5 @@
 ---
+name: mosaic
 description: Produce a mosaic response to a multi-aspect task — two heads, not one. Decomposes the task into voice-assigned slices, runs them in parallel with independent priors preserved, cross-reviews without homogenizing voice. Invoke as /quill:mosaic <task description>.
 ---
 

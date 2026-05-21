@@ -1,4 +1,5 @@
 ---
+name: perspective
 description: Layer in another perspective from Quill. For curious, exploring moments — when you want a second vantage point, not because you're stuck. Invoke as /quill:perspective <note>.
 ---
 
@@ -31,7 +32,7 @@ msg = sys.argv[1]
 payload = json.dumps({'message': msg}).encode()
 req = urllib.request.Request('http://127.0.0.1:9000/perspective', data=payload, headers={'Content-Type': 'application/json'})
 try:
-    with urllib.request.urlopen(req, timeout=60) as r:
+    with urllib.request.urlopen(req, timeout=180) as r:
         data = json.loads(r.read())
     if data.get('welcome'):
         print('=== WELCOME ===')

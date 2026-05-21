@@ -231,6 +231,36 @@ standalone `claude` CLI. Install the CLI separately:
 npm install -g @anthropic-ai/claude-code
 ```
 
+### Windows: empty reply from CLI advisor even though the CLI works
+
+On Windows, npm installs CLI tools as `.cmd` batch scripts
+(`claude.cmd`, `codex.cmd`). Python's subprocess cannot find these
+without the extension — `claude` resolves fine in PowerShell but not
+when called from Python's `asyncio.create_subprocess_exec`.
+
+Fix: set the full `.cmd` path in `.env`:
+
+```
+CLAUDE_BIN=C:\Users\<you>\AppData\Roaming\npm\claude.cmd
+# or
+CODEX_BIN=C:\Users\<you>\AppData\Roaming\npm\codex.cmd
+```
+
+Find the exact path with `where claude` in PowerShell.
+
+### Windows: monitor fails to auto-start the bridge (exit 49)
+
+The monitor command uses `bash` and `python3`, which don't resolve the
+same way on Windows. Start the bridge manually from a terminal instead:
+
+```powershell
+cd C:\Users\<you>\.claude\plugins\cache\yg3\quill\0.1.0\server
+python bridge_server.py
+```
+
+Keep this terminal open while you work. The bridge URL
+(`http://127.0.0.1:9000/dashboard`) is printed on startup.
+
 ### Welcome message refires every time
 
 Should only fire once per machine via `~/.quill/.welcomed`. If it's

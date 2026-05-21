@@ -78,6 +78,8 @@ See [RESEARCH.md](RESEARCH.md) for the open questions and how to contribute.
 
 ## Status
 
+**v0.2.2** — Windows compatibility fix: `CLAUDE_BIN` / `CODEX_BIN` must point to the `.cmd` binary on Windows (`C:\...\npm\claude.cmd`) since Python's subprocess can't resolve npm shim scripts without the extension. Gatekeeper is now disabled by default for CLI-backend installs — it requires the `api` backend to make decisions, and without one it would silently time out and fall through to prompting the human. Skill HTTP timeout bumped from 60s to 180s for slower machines. `MAX_INPUT_CHARS` default raised from 1000 to 5000 so plan-review context isn't truncated to ~5 sentences. Dashboard link (`http://127.0.0.1:9000/dashboard`) is now printed at bridge startup. Default `ADVISOR_BACKEND` in `.env.example` changed from `api` to `codex_cli` with clearer pairing guidance.
+
 **v0.2.1** — mosaic mode shipped + tested + planner robustness fix. Core MCP server and the Claude Code FastAPI bridge are both validated against all three advisor backends (Codex CLI, Claude CLI, API). Mosaic mode is empirically tested (4/4 wins on decisions-under-tension tasks per [spike-004](research/spike-004/findings.md)). See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for what's next.
 
 ## Maintainers
